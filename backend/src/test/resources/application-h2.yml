@@ -1,0 +1,23 @@
+# The suite's H2 leg: in-memory, MySQL compatibility mode, dies with the JVM.
+#
+# This file exists because the main tree ships application-h2.yml for the
+# app's default profile - and with profile "h2" active during tests, that
+# profile-specific file outranks the plain application.yml in test resources.
+# A datasource declared only in the plain test file would lose that
+# precedence battle, and the suite would silently run against the file
+# database behind ./data/ instead of the in-memory one it documents.
+#
+# Declaring the same-named profile file here shadows the main one
+# deterministically: the test classpath is searched first. Phase 2's tests
+# all roll back, so the ambiguity was harmless then; Phase 4's concurrency
+# test commits rows server-side, and on a file database those would leak
+# across runs. Pinned in-memory from here on.
+spring:
+  datasource:
+    url: jdbc:h2:mem:hotelbooking-test;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  h2:
+    console:
+      enabled: false
