@@ -1,0 +1,14 @@
+# Default profile - H2 in MySQL compatibility mode, persisted to ./data/.
+# Used for local development without a MySQL server. The schema, migrations
+# and locking behaviour stay identical to the MySQL profile.
+spring:
+  datasource:
+    url: jdbc:h2:file:./data/hotelbooking;MODE=MySQL
+    driver-class-name: org.h2.Driver
+    # Local dev only; no secrets live in this file and none of this data is sensitive.
+    username: sa
+    password: ""
+  h2:
+    console:
+      enabled: true
+      path: /h2-console

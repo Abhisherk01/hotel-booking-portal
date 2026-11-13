@@ -1,0 +1,38 @@
+spring:
+  application:
+    name: hotel-booking-api
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:h2}
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+
+server:
+  port: ${SERVER_PORT:8080}
+  error:
+    # A curated error envelope takes over in the exception-handling phase.
+    # Until then, Spring's default error payload stays stripped of internals -
+    # no messages, no exception classes, no stack traces.
+    include-stacktrace: never
+    include-exception: false
+    include-message: never
+    include-binding-errors: never
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+      show-components: never
+
+app:
+  business-timezone: Asia/Kolkata
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}

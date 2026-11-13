@@ -1,0 +1,11 @@
+{
+  "name": "hotel-booking-backend",
+  "private": true,
+  "scripts": {
+    "dev": "mvn spring-boot:run",
+    "start": "java -jar target/hotel-booking-api-0.1.0.jar",
+    "build": "mvn clean package -DskipTests",
+    "test": "mvn test",
+    "clean": "mvn clean"
+  }
+}
