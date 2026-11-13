@@ -2,7 +2,7 @@
 
 A full-stack hotel booking application: browse hotels, check date availability, book one room, retrieve and cancel reservations - built as a technical interview assignment.
 
-**Current status:** Phase 2 of 9 complete (database layer: migrations, entities, repositories, tests). REST endpoints arrive in Phase 3, the web client in Phase 5. This README documents only what exists right now.
+**Current status:** Phase 3 of 9 complete (database layer + the full REST API: controllers, DTOs, booking transaction, curated error envelope). The web client arrives in Phase 5. This README documents only what exists right now.
 
 ## Stack (backend)
 
@@ -13,6 +13,7 @@ A full-stack hotel booking application: browse hotels, check date availability, 
 | Persistence | Spring Data JPA (Hibernate) on a Flyway-owned schema |
 | Database | H2 (MySQL compatibility mode) for development, MySQL 8.4 for full local runs |
 | Build | Maven 3.9 (wrapper included, no local Maven install required) |
+| API docs | springdoc OpenAPI (`/swagger-ui.html`, `/v3/api-docs`) |
 | Tests | JUnit 5 + AssertJ + Spring Boot Test (15 database-layer tests) |
 
 ## Repository layout
@@ -21,9 +22,13 @@ A full-stack hotel booking application: browse hotels, check date availability, 
 backend/                       Spring Boot REST API (port 8080)
   src/main/java/com/hotelbooking/
     HotelBookingApplication.java
+    api/                       hotel + booking REST controllers
     config/                    CORS allowlist, business timezone clock
     domain/                    Hotel, RoomType, Booking, BookingStatus
+    dto/                       request/response records
+    error/                     ApiError envelope, exception hierarchy, global handler
     repository/                Spring Data repositories (incl. pessimistic row lock)
+    service/                   booking transaction, quoting, reference generator
   src/main/resources/
     application.yml            shared configuration
     application-h2.yml         default profile - embedded H2, file-persisted
@@ -37,6 +42,7 @@ backend/                       Spring Boot REST API (port 8080)
   .env.example                 environment template (copy to .env, never committed)
 docs/
   DATABASE.md                  schema documentation and verification guide
+  API.md                       REST contract, error codes, business rules
 frontend/                      arrives in Phase 5
 ```
 
@@ -115,7 +121,7 @@ cd backend
 ./mvnw test
 ```
 
-15 database-layer tests run against in-memory H2 in MySQL compatibility mode - the same migration files are exercised, just not the file database behind the running app. Coverage:
+15 database-layer tests run against in-memory H2 in MySQL compatibility mode - the same migration files are exercised, just not the file database behind the running app. The REST layer itself is verified end-to-end over HTTP on every delivery (see `docs/API.md`); the automated controller and service test suite, including the concurrency regression test, is Phase 4 scope. Coverage:
 
 | Suite | What it proves |
 |---|---|
@@ -134,7 +140,7 @@ SPRING_PROFILES_ACTIVE=mysql ./mvnw test
 
 - **CORS:** browsers may call the API only from origins listed in `app.cors.allowed-origins` (default `http://localhost:3000`, override with `CORS_ALLOWED_ORIGINS`). Unknown origins get `403` at the filter, before reaching any controller.
 - **Timezone:** all date validation resolves against the `app.business-timezone` clock (`Asia/Kolkata`), never against the JVM default of the host machine.
-- **Error responses:** Spring Boot defaults are stripped of messages, exception classes and stack traces. A curated error envelope (`timestamp`, `status`, `error`, `message`, `path`) is introduced with the exception handling work in Phase 3.
+- **Error responses:** every failure returns the curated envelope (`timestamp`, `status`, `error`, `message`, `path`); `error` is the machine-readable code the client branches on (`NOT_FOUND`, `VALIDATION_ERROR`, `BOOKING_UNAVAILABLE`, ...). See `docs/API.md` for the full code table. Spring's default payload stays stripped of internals.
 
 ## Sample data
 
@@ -153,17 +159,18 @@ Five properties on the classic Indian leisure circuit, one room category each (c
 | Endpoint | Status |
 |---|---|
 | `GET /actuator/health` | live |
-| `GET /api/hotels`, `GET /api/hotels/{id}`, `GET /api/hotels/search` | Phase 3 |
-| `GET /api/hotels/{id}/availability` | Phase 3 |
-| `POST /api/bookings/price-quote` | Phase 3 |
-| `POST /api/bookings` | Phase 3 |
-| `POST /api/bookings/lookup` | Phase 3 |
-| `POST /api/bookings/{reference}/cancel` | Phase 3 |
+| `GET /api/hotels`, `GET /api/hotels/{id}`, `GET /api/hotels/search` | live |
+| `GET /api/hotels/{id}/availability` | live |
+| `POST /api/bookings/price-quote` | live |
+| `POST /api/bookings` | live |
+| `POST /api/bookings/lookup` | live |
+| `POST /api/bookings/{reference}/cancel` | live |
 
-## Known limitations (as of Phase 2)
+## Known limitations (as of Phase 3)
 
-- No business endpoints exist yet; `/api/**` returns 404 by design until Phase 3. Booking business logic - reference generation, quoting, the lock-and-recount booking transaction, cancellation rules - is Phase 3 scope.
-- The concurrency regression test (two simultaneous bookings fighting for the last room) is specified and scheduled for Phase 4, once `BookingService` exists to test. It will use the pessimistic row lock on `room_types` delivered in this phase.
+- No authentication: whoever holds a booking reference can look it up and cancel it. The assignment scope has no accounts.
+- No cancel-by cutoff: a stay whose check-in date has passed can still be cancelled. The spec defined no cutoff; adding one is a single service check.
+- The concurrency regression test (two simultaneous bookings fighting for the last room) is specified and scheduled for Phase 4. It will drive two concurrent `POST /api/bookings` attempts against the pessimistic row lock that the booking transaction already uses.
 - The test suite was executed against H2 in MySQL compatibility mode in the build environment; the MySQL run of the same suite is one documented command away (`SPRING_PROFILES_ACTIVE=mysql ./mvnw test`) - see `docs/DATABASE.md`.
 - H2 in MySQL mode is not byte-for-byte identical to MySQL (index hint syntax, some DDL nuances, identifier casing - all documented in `docs/DATABASE.md`). The MySQL profile exists precisely to verify real behaviour; migrations are written to run on both engines.
 - The git author identity is the sandbox default (`Z User <z@container>`) - rewrite it before publishing (`git rebase -i` with `--exec 'git commit --amend --reset-author'`, or set `git config user.name/user.email` first).
