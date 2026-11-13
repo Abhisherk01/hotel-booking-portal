@@ -19,6 +19,7 @@ set runs unchanged on both engines:
 | name | VARCHAR(160) | NOT NULL |
 | city | VARCHAR(80) | NOT NULL |
 | description | VARCHAR(1000) | NOT NULL |
+| image_url | VARCHAR(500) | NULL - optional, added by V3; absent means the client renders its own fallback asset |
 
 Constraint: `uq_hotels_name_city UNIQUE (name, city)` - the same property
 cannot be listed twice for one city.
@@ -153,7 +154,8 @@ query's equality predicates; the dates handle the range scan.
    docker compose ps         # wait for STATUS: healthy
    ```
 2. Boot against it (`SPRING_PROFILES_ACTIVE=mysql ./mvnw spring-boot:run`) -
-   Flyway applies the same two migrations to MySQL.
+   Flyway applies the same migration set to MySQL, including the V3
+   `image_url` addition.
 3. Inspect with the client inside the container:
    ```bash
    docker exec -it <mysql-container> mysql -u hotel_app -p hotel_booking

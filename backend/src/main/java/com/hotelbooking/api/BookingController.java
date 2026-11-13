@@ -1,5 +1,6 @@
 package com.hotelbooking.api;
 
+import com.hotelbooking.dto.BookingCancelRequest;
 import com.hotelbooking.dto.BookingDto;
 import com.hotelbooking.dto.BookingLookupRequest;
 import com.hotelbooking.dto.BookingRequest;
@@ -45,7 +46,8 @@ public class BookingController {
     }
 
     @PostMapping("/{reference}/cancel")
-    public BookingDto cancel(@PathVariable String reference) {
-        return bookings.cancel(reference);
+    public BookingDto cancel(@PathVariable String reference,
+                             @Valid @RequestBody BookingCancelRequest request) {
+        return bookings.cancel(reference, request);
     }
 }

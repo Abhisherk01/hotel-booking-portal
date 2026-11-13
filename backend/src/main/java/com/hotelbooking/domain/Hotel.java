@@ -38,6 +38,13 @@ public class Hotel {
     @Column(nullable = false, length = 1000)
     private String description;
 
+    /**
+     * Optional: no seed photography exists yet, so a NULL here is a normal
+     * state and the client is expected to fall back to its own asset.
+     */
+    @Column(name = "image_url", length = 500)
+    private String imageUrl;
+
     @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(name = "hotel_amenities", joinColumns = @JoinColumn(name = "hotel_id"))
     @Column(name = "amenity", nullable = false, length = 80)
@@ -67,6 +74,10 @@ public class Hotel {
 
     public String getDescription() {
         return description;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
     }
 
     public Set<String> getAmenities() {

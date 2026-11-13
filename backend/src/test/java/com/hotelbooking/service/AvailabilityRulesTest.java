@@ -4,6 +4,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
 
+import com.hotelbooking.dto.BookingCancelRequest;
 import com.hotelbooking.dto.BookingDto;
 import com.hotelbooking.dto.BookingRequest;
 import com.hotelbooking.dto.HotelAvailabilityDto;
@@ -113,7 +114,8 @@ class AvailabilityRulesTest {
         assertThat(roomOne(hotelService.availability(1L, base, base.plusDays(2))).availableUnits())
                 .isZero();
 
-        bookingService.cancel(held.reference());
+        bookingService.cancel(held.reference(),
+                new BookingCancelRequest("aarav.gupta@example.in"));
 
         assertThat(roomOne(hotelService.availability(1L, base, base.plusDays(2))).available())
                 .isTrue();

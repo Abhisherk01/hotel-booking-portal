@@ -102,7 +102,8 @@ class PriceCalculationTest {
                 .isEqualByComparingTo("29997.00");
 
         // ...while the booking keeps exactly what the guest agreed to pay
-        BookingDto after = bookingService.lookup(new BookingLookupRequest(original.reference()));
+        BookingDto after = bookingService.lookup(new BookingLookupRequest(
+                original.reference(), "ravi.sharma@example.in"));
         assertThat(after.pricePerNight()).isEqualByComparingTo("8500.00");
         assertThat(after.totalAmount()).isEqualByComparingTo("25500.00");
     }

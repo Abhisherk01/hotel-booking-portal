@@ -2,7 +2,7 @@
 
 A full-stack hotel booking application: browse hotels, check date availability, book one room, retrieve and cancel reservations - built as a technical interview assignment.
 
-**Current status:** Phase 4 of 9 complete (database layer + the full REST API + the automated test suite: REST contract, price math, availability rules and the concurrency regression). The web client arrives in Phase 5. This README documents only what exists right now.
+**Current status:** Phase 5 in progress (backend complete through Phase 4: database layer, full REST API, automated test suite; frontend Milestone A shipped the design system, global layout, navigation and footer; Milestone B shipped the homepage - hero, live destination/date search, featured collection, destination cards). This README documents only what exists right now.
 
 ## Stack (backend)
 
@@ -14,7 +14,7 @@ A full-stack hotel booking application: browse hotels, check date availability, 
 | Database | H2 (MySQL compatibility mode) for development, MySQL 8.4 for full local runs |
 | Build | Maven 3.9 (wrapper included, no local Maven install required) |
 | API docs | springdoc OpenAPI (`/swagger-ui.html`, `/v3/api-docs`) |
-| Tests | JUnit 5 + AssertJ + Spring Boot Test (56 tests: database layer, REST contract, money & availability rules, concurrency regression) |
+| Tests | JUnit 5 + AssertJ + Spring Boot Test (60 tests: database layer, REST contract, money & availability rules, concurrency regression) |
 
 ## Repository layout
 
@@ -36,22 +36,48 @@ backend/                       Spring Boot REST API (port 8080)
     db/migration/
       V1__schema.sql           four tables, constraints, availability index
       V2__sample_data.sql      five seeded hotels, INR pricing, amenities
+      V3__hotel_images.sql     optional hotel image_url column (photography pending)
   src/test/java/               database, REST contract and concurrency tests
   src/test/resources/          test datasources: in-memory H2 (default), MySQL via profile
   docker-compose.yml           MySQL 8.4 for the local database profile
   .env.example                 environment template (copy to .env, never committed)
+frontend/                     React 18 + Vite + TypeScript (Phase 5, milestone B)
+  src/api/                    typed client for the Spring Boot endpoints + response shapes
+  src/lib/format.ts           INR formatting, night math, Asia/Kolkata business date
+  src/styles/tokens.css       design tokens - the approved Option A palette
+  src/styles/global.css       reset, typography base, buttons, motion rules
+  src/components/layout/      header, footer, app shell
+  src/components/common/      BrandMark, SmartImage (fallback-aware), PagePlaceholder
+  src/components/home/        SearchPanel (validated), HotelCard, homepage sections
+  src/data/imageCatalog.ts    centralized photography mapping with per-hotel notes
+  src/assets/brand/           commissioned Aurelia Collection hero image
+  src/assets/hotels/          ten shipped photography assets (img-1 .. img-10)
+  src/pages/                  routed pages + /styleguide design-system reference
 docs/
   DATABASE.md                  schema documentation and verification guide
   API.md                       REST contract, error codes, business rules
   TESTING.md                   test strategy, both database legs, what each proves
-frontend/                      arrives in Phase 5
+  IMAGE-INVENTORY.md           photography subjects, placements and honest pairing notes
 ```
 
 ## Prerequisites
 
 - JDK 21 (`java -version` should report 21.x; newer JDKs also compile correctly since the build targets `--release 21`)
+- Node.js 20+ and npm, only if you run the frontend
 - That is all for the H2 profile - the Maven wrapper downloads Maven itself.
 - Docker + Docker Compose, only if you want the MySQL profile.
+
+## Frontend (Phase 5, milestone B)
+
+React 18 + Vite + TypeScript against the approved "Luxury Hotel Booking - Option A" direction. Milestone B fills the homepage: the commissioned hero photograph, a destination/date search panel wired to `GET /api/hotels/search` plus per-hotel `GET /api/hotels/{id}/availability`, the featured collection (real seeded records and INR rates via `GET /api/hotels` + detail calls) and five destination cards that run genuine searches. Date validation mirrors the backend's `StayDates` rules on an Asia/Kolkata clock: past check-in rejected, check-out must fall after check-in. The dev server proxies `/api/*` to `localhost:8080`, so start the backend first:
+
+```bash
+cd frontend
+npm install
+npm run dev          # http://localhost:5173
+```
+
+`npm run build` runs the TypeScript compiler in strict mode and produces the production bundle in `dist/`; `npm run preview` serves that bundle on port 4173 with the same `/api` proxy, so the production build talks to the API with no CORS setup. When the frontend is deployed from a different origin than the API, set `VITE_API_BASE_URL` at build time and add that origin to the backend's `CORS_ALLOWED_ORIGINS`. The photography inventory and placement rules live in `docs/IMAGE-INVENTORY.md`; the design tokens are visualized on `/styleguide` while the dev server runs.
 
 ## Running with H2 (default profile)
 
@@ -122,16 +148,16 @@ cd backend
 ./mvnw test
 ```
 
-56 tests run by default against in-memory H2 in MySQL compatibility mode: the four database-layer classes from the schema work, the REST contract tests for all eight endpoints, the price and availability rule tests, and the concurrency regression. Every contract and service test rolls back inside one transaction, so the suite is repeatable and order-independent; the concurrency test brings its own fixture and cleans up after itself. Strategy, isolation model and result interpretation live in `docs/TESTING.md`.
+60 tests run by default against in-memory H2 in MySQL compatibility mode: the four database-layer classes from the schema work, the REST contract tests for all eight endpoints, the price and availability rule tests, and the concurrency regression. Every contract and service test rolls back inside one transaction, so the suite is repeatable and order-independent; the concurrency test brings its own fixture and cleans up after itself. Strategy, isolation model and result interpretation live in `docs/TESTING.md`.
 
 | Suite | What it proves |
 |---|---|
-| `SchemaMigrationTest` | both migrations recorded applied; all four tables exist; CHECK constraints reject impossible rows (zero-night stays, unknown statuses, cancelled-timestamp misuse, duplicate amenities) |
+| `SchemaMigrationTest` | all migrations recorded applied; all four tables exist; CHECK constraints reject impossible rows (zero-night stays, unknown statuses, cancelled-timestamp misuse, duplicate amenities) |
 | `SeedDataTest` | five circuit hotels; 5-7 distinct amenities each; exactly one room category per hotel, capacity 1, positive 2-decimal price |
 | `BookingRepositoryTest` | frozen-quote round-trip; duplicate reference rejected; the half-open overlap truth table; cancelled bookings release the room |
 | `RoomTypeRepositoryTest` | `SELECT ... FOR UPDATE` reader works; categories listable per hotel |
 | `HotelApiContractTest` | hotel endpoints over HTTP: shapes, sorted amenities, generic 404s, parameter validation |
-| `BookingApiContractTest` | booking endpoints over HTTP: 201/200/400/404/405/409, the five-field error envelope, identical generic 404 bodies, input trimming |
+| `BookingApiContractTest` | booking endpoints over HTTP: 201/200/400/404/405/409, the five-field error envelope, identical generic 404 bodies, reference+email pairing on lookup and cancel, input trimming |
 | `BookingConcurrencyTest` | six simultaneous POSTs fight for one room through the real stack: exactly one 201, five 409 `BOOKING_UNAVAILABLE`, one persisted row |
 | `PriceCalculationTest` | single/multi-night math; quote follows the current price; bookings freeze the agreed price; post-reprice bookings take the new price |
 | `AvailabilityRulesTest` | overlaps block; half-open edges bookable; same-day turnover; cancellation releases inventory; quotes advisory, booking rechecks |
@@ -148,7 +174,7 @@ What each leg proves differs in one important way: the H2 leg verifies the booki
 
 ## Configuration notes
 
-- **CORS:** browsers may call the API only from origins listed in `app.cors.allowed-origins` (default `http://localhost:3000`, override with `CORS_ALLOWED_ORIGINS`). Unknown origins get `403` at the filter, before reaching any controller.
+- **CORS:** browsers may call the API only from origins listed in `app.cors.allowed-origins` (default `http://localhost:3000` and Vite's `http://localhost:5173`, override with `CORS_ALLOWED_ORIGINS`). Unknown origins get `403` at the filter, before reaching any controller.
 - **Timezone:** all date validation resolves against the `app.business-timezone` clock (`Asia/Kolkata`), never against the JVM default of the host machine.
 - **Error responses:** every failure returns the curated envelope (`timestamp`, `status`, `error`, `message`, `path`); `error` is the machine-readable code the client branches on (`NOT_FOUND`, `VALIDATION_ERROR`, `BOOKING_UNAVAILABLE`, ...). See `docs/API.md` for the full code table. Spring's default payload stays stripped of internals.
 
@@ -178,7 +204,8 @@ Five properties on the classic Indian leisure circuit, one room category each (c
 
 ## Known limitations (as of Phase 4)
 
-- No authentication: whoever holds a booking reference can look it up and cancel it. The assignment scope has no accounts.
+- No authentication beyond the reference+email pair: a guest who loses both the reference and their inbox has no recovery path. The assignment scope has no accounts.
+- Hotel photography: `image_url` stays NULL for every seeded property by agreement. The frontend ships a local, catalog-driven set of assets instead (see `docs/IMAGE-INVENTORY.md`) - a future database URL overrides the catalog automatically.
 - No cancel-by cutoff: a stay whose check-in date has passed can still be cancelled. The spec defined no cutoff; adding one is a single service check.
 - The concurrency regression is automated (`BookingConcurrencyTest`: six simultaneous bookings, exactly one winner). On the default H2 leg it verifies the transaction's lock-recount-compare-persist shape in MySQL compatibility mode; only the MySQL leg exercises InnoDB row locks itself, and the test report must state which engine ran.
 - The test suite was executed against H2 in MySQL compatibility mode in the build environment; the MySQL run of the same suite is one documented command away (`SPRING_PROFILES_ACTIVE=mysql ./mvnw test`) - see `docs/DATABASE.md`.

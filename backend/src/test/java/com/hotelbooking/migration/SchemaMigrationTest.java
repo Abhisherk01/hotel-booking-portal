@@ -30,14 +30,14 @@ class SchemaMigrationTest {
     private JdbcTemplate jdbc;
 
     @Test
-    void bothMigrationsAreRecordedAsApplied() {
+    void allMigrationsAreRecordedAsApplied() {
         // rank -1 is Flyway's own "history table created" marker row (null
         // version); real migrations carry positive ranks.
         List<Map<String, Object>> applied = jdbc.queryForList(
                 "select version from flyway_schema_history where success = true and version is not null order by installed_rank");
         assertThat(applied)
                 .extracting(row -> String.valueOf(row.get("version")))
-                .containsExactly("1", "2");
+                .containsExactly("1", "2", "3");
     }
 
     @Test

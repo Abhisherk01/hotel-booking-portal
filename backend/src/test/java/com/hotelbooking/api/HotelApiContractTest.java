@@ -69,6 +69,11 @@ class HotelApiContractTest {
         assertThat(jaipur.get("name").asText()).isEqualTo("Hawa Mahal Courtyard Haveli");
         assertThat(jaipur.get("city").asText()).isEqualTo("Jaipur");
 
+        // photography is pending: the field exists, the value may be null,
+        // and the client is expected to fall back to its own asset
+        assertThat(jaipur.has("imageUrl")).isTrue();
+        assertThat(jaipur.get("imageUrl").isNull()).isTrue();
+
         JsonNode amenities = jaipur.get("amenities");
         assertThat(amenities.size()).isEqualTo(6);
         assertThat(amenities.get(0).asText()).isEqualTo("Air Conditioning");

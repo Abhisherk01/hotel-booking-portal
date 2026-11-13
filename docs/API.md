@@ -43,7 +43,8 @@ disabled.
 
 ### `GET /api/hotels`
 
-All five seeded properties, amenities sorted.
+All five seeded properties, amenities sorted. `imageUrl` is present but may
+be null while photography is pending - clients render their own fallback.
 
 ```
 curl http://localhost:8080/api/hotels
@@ -104,26 +105,37 @@ Creates a CONFIRMED booking and returns it with its reference.
 }
 ```
 
-Returns `201` with the full booking view; the `reference` (format `HB-` plus
-nine unambiguous characters) is the only credential a guest needs for
-lookup and cancellation.
+Returns `201` with the full booking view. The `reference` (format `HB-` plus
+nine unambiguous characters) plus the guest email are the pair a guest needs
+for lookup and cancellation.
 
 ### `POST /api/bookings/lookup`
 
 ```json
-{ "reference": "HB-B9TF3FHA9" }
+{ "reference": "HB-B9TF3FHA9", "guestEmail": "meera@example.in" }
 ```
 
 Lookup is a POST on purpose: the reference then never sits in a URL path,
-an access log or a `Referrer` header. Unknown references return the same
-generic 404 as everything else; input longer than the 12-character column
-is rejected as a 400 before the database is consulted.
+an access log or a `Referrer` header. Both halves are required - a valid
+reference with the wrong email answers the same generic 404 as an unknown
+reference, so a probe cannot tell whether the reference or the email was
+the failing half. The email comparison is case-insensitive. Input longer
+than the 12-character column is rejected as a 400 before the database is
+consulted.
 
 ### `POST /api/bookings/{reference}/cancel`
+
+```json
+{ "guestEmail": "meera@example.in" }
+```
 
 Marks the booking CANCELLED and stamps `cancelledAt` from the business
 clock. The room returns to inventory immediately - a half-open overlap
 query simply stops counting it.
+
+The same email pairing applies: a wrong email is the generic 404 and the
+booking stays alive; an email-verified cancel of an already-cancelled
+booking is `409 BOOKING_ALREADY_CANCELLED`.
 
 ## Business rules
 
@@ -141,11 +153,16 @@ query simply stops counting it.
    holding the lock, and compares against capacity. Losers get 409
    `BOOKING_UNAVAILABLE` - a business outcome, not a server fault.
 6. **Generic 404 everywhere.** No endpoint distinguishes "does not exist"
-   from "exists but you may not know that".
+   from "exists but you may not know that" - including a real reference
+   paired with the wrong email on lookup or cancel.
+7. **Reference + email pair.** Both lookup and cancellation verify the
+   guest email against the stored booking before anything happens, and the
+   comparison is case-insensitive the way mailboxes actually behave.
 
 ## Deliberate limitations
 
-- No authentication. A reference holder can look up and cancel; the
+- No authentication beyond the reference+email pair: a guest who loses both
+  their reference and access to their inbox has no recovery path. The
   assignment scope has no accounts.
 - No cancel-by cutoff (a stay whose check-in has passed can still be
   cancelled). The spec did not define a cutoff; adding one is a single

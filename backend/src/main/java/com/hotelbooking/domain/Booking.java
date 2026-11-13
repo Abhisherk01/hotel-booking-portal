@@ -99,6 +99,19 @@ public class Booking {
         this.cancelledAt = cancelledAt;
     }
 
+    /**
+     * Lookup and cancellation pair the reference with the guest email.
+     * Mailboxes are matched case-insensitively in practice - "Meera@Example.in"
+     * and "meera@example.in" reach the same person - so the comparison does
+     * the same rather than failing a guest who capitalized differently.
+     */
+    public boolean matchesGuestEmail(String candidate) {
+        if (candidate == null) {
+            return false;
+        }
+        return guestEmail.equalsIgnoreCase(candidate.trim());
+    }
+
     public Long getId() {
         return id;
     }

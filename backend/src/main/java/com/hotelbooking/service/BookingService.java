@@ -8,6 +8,7 @@ import java.time.LocalDate;
 import com.hotelbooking.domain.Booking;
 import com.hotelbooking.domain.BookingStatus;
 import com.hotelbooking.domain.RoomType;
+import com.hotelbooking.dto.BookingCancelRequest;
 import com.hotelbooking.dto.BookingDto;
 import com.hotelbooking.dto.BookingLookupRequest;
 import com.hotelbooking.dto.BookingRequest;
@@ -83,21 +84,28 @@ public class BookingService {
     }
 
     /**
-     * Lookup is reference-only and returns the same 404 for unknown and
-     * mistyped references alike; references are 9 random characters, so
-     * guessing one is not a practical attack.
+     * Lookup pairs the reference with the guest email and answers the same
+     * generic 404 when either half is wrong, so nobody can probe which part
+     * failed. References stay POST-bound: they never appear in a URL, an
+     * access log or a Referrer header.
      */
     @Transactional(readOnly = true)
     public BookingDto lookup(BookingLookupRequest request) {
         Booking booking = bookings.findByBookingReference(request.reference().trim())
+                .filter(candidate -> candidate.matchesGuestEmail(request.guestEmail()))
                 .orElseThrow(NotFoundApiException::new);
         return BookingDto.from(booking);
     }
 
-    /** Cancellation is terminal; a second cancel is a conflict, not a reset. */
+    /**
+     * Cancellation is terminal; a second cancel is a conflict, not a reset.
+     * The email is verified before that check fires - releasing someone
+     * else's room by knowing only the reference is not a thing.
+     */
     @Transactional
-    public BookingDto cancel(String reference) {
+    public BookingDto cancel(String reference, BookingCancelRequest request) {
         Booking booking = bookings.findByBookingReference(reference.trim())
+                .filter(candidate -> candidate.matchesGuestEmail(request.guestEmail()))
                 .orElseThrow(NotFoundApiException::new);
         if (booking.getStatus() == BookingStatus.CANCELLED) {
             throw new ConflictApiException("BOOKING_ALREADY_CANCELLED",

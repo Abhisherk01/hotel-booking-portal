@@ -29,8 +29,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  *  - the status codes the docs promise: 201 create, 200 quote/lookup/cancel,
  *    400 validation, 404 generic, 405 wrong verb, 409 sold-out or terminal
  *  - the five-field error envelope on every failure path, timestamp included
- *  - the existence-leak guard: unknown hotel, unknown reference and unknown
- *    path all carry the identical generic 404 body
+ *  - the existence-leak guard: unknown hotel, unknown-or-mismatched
+ *    reference+email pair and unknown path all carry the identical generic
+ *    404 body - the API never reveals which half of the pair was wrong
  *  - frozen-quote semantics visible from the outside: the create response's
  *    amounts are computed by the server, never supplied by the client
  *
@@ -185,21 +186,64 @@ class BookingApiContractTest {
 
         MvcResult result = mockMvc.perform(post("/api/bookings/lookup")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(jsonOf(Map.of("reference", reference))))
+                        .content(jsonOf(Map.of("reference", reference, "guestEmail", "meera@example.in"))))
                 .andExpect(status().isOk())
                 .andReturn();
 
         JsonNode booking = bodyOf(result);
         assertThat(booking.get("reference").asText()).isEqualTo(reference);
         assertThat(booking.get("guestName").asText()).isEqualTo("Meera Iyer");
+        assertThat(booking.get("guestEmail").asText()).isEqualTo("meera@example.in");
         assertThat(booking.get("status").asText()).isEqualTo("CONFIRMED");
+    }
+
+    @Test
+    void lookupWithWrongEmailIsIndistinguishableFromUnknownReference() throws Exception {
+        MvcResult created = createBooking("Meera Iyer", "meera@example.in", soon(2), soon(4));
+        String reference = bodyOf(created).get("reference").asText();
+
+        MvcResult wrongEmail = mockMvc.perform(post("/api/bookings/lookup")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonOf(Map.of("reference", reference, "guestEmail", "someone.else@example.in"))))
+                .andExpect(status().isNotFound())
+                .andReturn();
+
+        // the answer must not reveal that the reference itself is real
+        JsonNode body = bodyOf(wrongEmail);
+        assertThat(body.get("error").asText()).isEqualTo("NOT_FOUND");
+        assertThat(body.get("message").asText()).isEqualTo(GENERIC_404_MESSAGE);
+        assertThat(body.get("path").asText()).isEqualTo("/api/bookings/lookup");
+    }
+
+    @Test
+    void lookupMatchesTheEmailCaseInsensitively() throws Exception {
+        MvcResult created = createBooking("Meera Iyer", "meera@example.in", soon(2), soon(4));
+        String reference = bodyOf(created).get("reference").asText();
+
+        mockMvc.perform(post("/api/bookings/lookup")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonOf(Map.of("reference", reference, "guestEmail", "MEERA@Example.in"))))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void lookupWithoutEmailIsAValidationError() throws Exception {
+        MvcResult result = mockMvc.perform(post("/api/bookings/lookup")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonOf(Map.of("reference", "HB-B9TF3FHA9"))))
+                .andExpect(status().isBadRequest())
+                .andReturn();
+
+        JsonNode body = bodyOf(result);
+        assertThat(body.get("error").asText()).isEqualTo("VALIDATION_ERROR");
+        assertThat(body.get("message").asText()).contains("guestEmail");
     }
 
     @Test
     void unknownReferenceGetsTheGenericNotFound() throws Exception {
         MvcResult result = mockMvc.perform(post("/api/bookings/lookup")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(jsonOf(Map.of("reference", "HB-ZZZZZZZZZ"))))
+                        .content(jsonOf(Map.of("reference", "HB-ZZZZZZZZZ", "guestEmail", "meera@example.in"))))
                 .andExpect(status().isNotFound())
                 .andReturn();
 
@@ -276,7 +320,9 @@ class BookingApiContractTest {
         MvcResult created = createBooking("Meera Iyer", "meera@example.in", soon(2), soon(4));
         String reference = bodyOf(created).get("reference").asText();
 
-        MvcResult result = mockMvc.perform(post("/api/bookings/" + reference + "/cancel"))
+        MvcResult result = mockMvc.perform(post("/api/bookings/" + reference + "/cancel")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonOf(Map.of("guestEmail", "meera@example.in"))))
                 .andExpect(status().isOk())
                 .andReturn();
 
@@ -293,10 +339,14 @@ class BookingApiContractTest {
         MvcResult created = createBooking("Meera Iyer", "meera@example.in", soon(2), soon(4));
         String reference = bodyOf(created).get("reference").asText();
 
-        mockMvc.perform(post("/api/bookings/" + reference + "/cancel"))
+        mockMvc.perform(post("/api/bookings/" + reference + "/cancel")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonOf(Map.of("guestEmail", "meera@example.in"))))
                 .andExpect(status().isOk());
 
-        MvcResult second = mockMvc.perform(post("/api/bookings/" + reference + "/cancel"))
+        MvcResult second = mockMvc.perform(post("/api/bookings/" + reference + "/cancel")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonOf(Map.of("guestEmail", "meera@example.in"))))
                 .andExpect(status().isConflict())
                 .andReturn();
 
@@ -307,7 +357,9 @@ class BookingApiContractTest {
 
     @Test
     void cancellingUnknownReferenceIsGenericNotFound() throws Exception {
-        MvcResult result = mockMvc.perform(post("/api/bookings/HB-ZZZZZZZZ8/cancel"))
+        MvcResult result = mockMvc.perform(post("/api/bookings/HB-ZZZZZZZZ8/cancel")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonOf(Map.of("guestEmail", "meera@example.in"))))
                 .andExpect(status().isNotFound())
                 .andReturn();
 
@@ -318,12 +370,34 @@ class BookingApiContractTest {
     }
 
     @Test
+    void cancelWithWrongEmailLeavesTheBookingAlive() throws Exception {
+        MvcResult created = createBooking("Meera Iyer", "meera@example.in", soon(2), soon(4));
+        String reference = bodyOf(created).get("reference").asText();
+
+        MvcResult rejected = mockMvc.perform(post("/api/bookings/" + reference + "/cancel")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonOf(Map.of("guestEmail", "someone.else@example.in"))))
+                .andExpect(status().isNotFound())
+                .andReturn();
+        assertThat(bodyOf(rejected).get("error").asText()).isEqualTo("NOT_FOUND");
+
+        // the rejected attempt must not have released the room: the real
+        // guest can still cancel the very same booking afterwards
+        MvcResult realCancel = mockMvc.perform(post("/api/bookings/" + reference + "/cancel")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonOf(Map.of("guestEmail", "meera@example.in"))))
+                .andExpect(status().isOk())
+                .andReturn();
+        assertThat(bodyOf(realCancel).get("status").asText()).isEqualTo("CANCELLED");
+    }
+
+    @Test
     void everyNotFoundCarriesTheIdenticalGenericBody() throws Exception {
         JsonNode unknownHotel = bodyOf(mockMvc.perform(get("/api/hotels/999"))
                 .andExpect(status().isNotFound()).andReturn());
         JsonNode unknownReference = bodyOf(mockMvc.perform(post("/api/bookings/lookup")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(jsonOf(Map.of("reference", "HB-ZZZZZZZZZ"))))
+                        .content(jsonOf(Map.of("reference", "HB-ZZZZZZZZZ", "guestEmail", "meera@example.in"))))
                 .andExpect(status().isNotFound()).andReturn());
         JsonNode unknownPath = bodyOf(mockMvc.perform(get("/api/definitely-not-a-real-path"))
                 .andExpect(status().isNotFound()).andReturn());
