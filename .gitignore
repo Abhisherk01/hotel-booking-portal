@@ -1,12 +1,72 @@
-﻿# build output
-backend/target/
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# local runtime data (h2 database files land here)
-backend/data/
+# dependencies
+node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
 
-# logs
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+
+# vercel
+.vercel
+
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+local-*
+.claude
+.z-ai-config
 *.log
+dev.log
+dev.out.log
+test
+prompt
 
-# real credentials stay out of git; .env.example templates are committed
+server.log
+# Skills directory
+/skills/
+# backend (spring boot api)
+backend/target/
+backend/data/
+# the bare "test" rule above would swallow backend/src/test - re-include it
+!backend/src/test
+# the env template must be committed; only real .env files are ignored
+!.env.example
+!backend/.env.example
+
+# sandbox-local tooling and artifacts (not part of the assignment)
 .env
-backend/.env
+.zscripts/
+/tests/
+/examples/
+/upload/
+/download/
+/Caddyfile
+/db/
