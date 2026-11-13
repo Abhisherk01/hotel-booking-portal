@@ -1,0 +1,12 @@
+﻿# build output
+backend/target/
+
+# local runtime data (h2 database files land here)
+backend/data/
+
+# logs
+*.log
+
+# real credentials stay out of git; .env.example templates are committed
+.env
+backend/.env
