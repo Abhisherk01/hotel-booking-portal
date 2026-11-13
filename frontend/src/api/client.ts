@@ -10,9 +10,13 @@
  */
 
 import type {
+  Booking,
+  BookingPayload,
   HotelAvailability,
   HotelDetail,
   HotelSummary,
+  PriceQuote,
+  PriceQuotePayload,
 } from './types'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? ''
@@ -20,23 +24,39 @@ const REQUEST_TIMEOUT_MS = 10_000
 
 export class ApiError extends Error {
   readonly status: number
+  /** The stable token from the envelope's error field, e.g. BOOKING_UNAVAILABLE. */
+  readonly code: string
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, code = '') {
     super(message)
     this.name = 'ApiError'
     this.status = status
+    this.code = code
   }
 }
 
-async function request<T>(path: string, searchParams?: Record<string, string>): Promise<T> {
+type RequestOptions = {
+  searchParams?: Record<string, string>
+  /** Present means POST with a JSON body. */
+  body?: unknown
+}
+
+async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const url = `${API_BASE}/api${path}`
-  const query = searchParams ? new URLSearchParams(searchParams).toString() : ''
+  const query = options.searchParams
+    ? new URLSearchParams(options.searchParams).toString()
+    : ''
 
   let response: Response
   try {
     response = await fetch(query ? `${url}?${query}` : url, {
+      method: options.body === undefined ? 'GET' : 'POST',
+      headers:
+        options.body === undefined
+          ? { Accept: 'application/json' }
+          : { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: options.body === undefined ? undefined : JSON.stringify(options.body),
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-      headers: { Accept: 'application/json' },
     })
   } catch {
     // Timeout or the server being unreachable - one plain sentence, the
@@ -45,22 +65,29 @@ async function request<T>(path: string, searchParams?: Record<string, string>): 
   }
 
   if (!response.ok) {
-    const message = await errorMessageFrom(response)
-    throw new ApiError(response.status, message)
+    const failure = await failureFrom(response)
+    throw new ApiError(response.status, failure.message, failure.code)
   }
 
   return (await response.json()) as T
 }
 
-/** The backend answers failures with {timestamp, status, error, message, path}. */
-async function errorMessageFrom(response: Response): Promise<string> {
+/**
+ * The backend answers failures with {timestamp, status, error, message,
+ * path} - message is what a human reads, error is the token code the
+ * frontend branches on (BOOKING_UNAVAILABLE and friends).
+ */
+async function failureFrom(response: Response): Promise<{ message: string; code: string }> {
   try {
-    const body = (await response.json()) as { message?: string }
-    if (body.message) return body.message
+    const body = (await response.json()) as { message?: string; error?: string }
+    return {
+      message: body.message ?? `The API answered ${response.status}.`,
+      code: body.error ?? '',
+    }
   } catch {
     // Non-JSON body (proxy down, HTML error page) - fall through.
+    return { message: `The API answered ${response.status}.`, code: '' }
   }
-  return `The API answered ${response.status}.`
 }
 
 export function fetchHotels(): Promise<HotelSummary[]> {
@@ -68,7 +95,7 @@ export function fetchHotels(): Promise<HotelSummary[]> {
 }
 
 export function searchHotels(city: string): Promise<HotelSummary[]> {
-  return request<HotelSummary[]>('/hotels/search', { city })
+  return request<HotelSummary[]>('/hotels/search', { searchParams: { city } })
 }
 
 export function fetchHotel(id: number): Promise<HotelDetail> {
@@ -81,7 +108,21 @@ export function fetchAvailability(
   checkOut: string,
 ): Promise<HotelAvailability> {
   return request<HotelAvailability>(`/hotels/${hotelId}/availability`, {
-    checkIn,
-    checkOut,
+    searchParams: { checkIn, checkOut },
   })
+}
+
+/** The authoritative rate for a stay. Quoting never touches availability. */
+export function quoteBookingPrice(payload: PriceQuotePayload): Promise<PriceQuote> {
+  return request<PriceQuote>('/bookings/price-quote', { body: payload })
+}
+
+/**
+ * Create the booking. The API answers 201 with the stored reservation -
+ * snapshot figures included - or a deliberate failure: 409
+ * BOOKING_UNAVAILABLE when another guest won the room, 400 when the dates
+ * no longer pass validation. Anything confirmed happened server-side.
+ */
+export function createBooking(payload: BookingPayload): Promise<Booking> {
+  return request<Booking>('/bookings', { body: payload })
 }

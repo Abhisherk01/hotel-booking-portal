@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 import type { HotelAvailability, HotelSummary } from '../../api/types'
 import { SmartImage } from '../common/SmartImage'
 import { resolveHotelCover } from '../../data/imageCatalog'
@@ -17,13 +18,19 @@ type HotelCardProps = {
   nights?: number
   /** Optional extra row in the card footer (the collection page puts its Compare toggle here). */
   action?: ReactNode
+  /**
+   * Where the card leads. Defaults to the stay's own page; the collection
+   * page passes dates and town along so the property page (and its back
+   * link) picks up the same context.
+   */
+  linkTo?: string
 }
 
 /*
  * The one card used by the featured grid, the collection listing and live
- * search results. It is deliberately a plain article, not a link: the
- * property pages they would point at are built in a later milestone, and
- * a dead link is worse than an honest card.
+ * search results. The hotel name is a link whose ::after covers the whole
+ * card, so the card reads as one target while the Compare toggle (raised
+ * above the overlay) stays independently clickable.
  */
 export function HotelCard({
   hotel,
@@ -33,10 +40,12 @@ export function HotelCard({
   stayFailed = false,
   nights = 0,
   action,
+  linkTo,
 }: HotelCardProps) {
   const cover = resolveHotelCover(hotel.id, hotel.name, hotel.imageUrl)
   const shownAmenities = hotel.amenities.slice(0, 3)
   const extraAmenities = hotel.amenities.length - shownAmenities.length
+  const detailPath = linkTo ?? `/hotels/${hotel.id}`
 
   const openRooms = stay ? stay.roomTypes.filter((room) => room.available) : []
   const cheapestOpen = openRooms.length > 0
@@ -52,7 +61,11 @@ export function HotelCard({
 
       <div className="hotel-card__body">
         <p className="hotel-card__city">{hotel.city}</p>
-        <h3 className="hotel-card__name">{hotel.name}</h3>
+        <h3 className="hotel-card__name">
+          <Link to={detailPath} className="hotel-card__name-link">
+            {hotel.name}
+          </Link>
+        </h3>
         <p className="hotel-card__description">{hotel.description}</p>
 
         {shownAmenities.length > 0 && (

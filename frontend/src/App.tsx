@@ -2,6 +2,9 @@ import { Route, Routes } from 'react-router-dom'
 import { AppLayout } from './components/layout/AppLayout'
 import { HomePage } from './pages/HomePage'
 import { CollectionPage } from './pages/CollectionPage'
+import { HotelDetailPage } from './pages/HotelDetailPage'
+import { BookingPage } from './pages/BookingPage'
+import { BookingConfirmationPage } from './pages/BookingConfirmationPage'
 import { DestinationsPage } from './pages/DestinationsPage'
 import { ManageBookingPage } from './pages/ManageBookingPage'
 import { StyleguidePage } from './pages/StyleguidePage'
@@ -13,6 +16,9 @@ export default function App() {
       <Route element={<AppLayout />}>
         <Route index element={<HomePage />} />
         <Route path="hotels" element={<CollectionPage />} />
+        <Route path="hotels/:hotelId" element={<HotelDetailPage />} />
+        <Route path="hotels/:hotelId/book" element={<BookingPage />} />
+        <Route path="bookings/:reference" element={<BookingConfirmationPage />} />
         <Route path="destinations" element={<DestinationsPage />} />
         <Route path="manage-booking" element={<ManageBookingPage />} />
         <Route path="styleguide" element={<StyleguidePage />} />

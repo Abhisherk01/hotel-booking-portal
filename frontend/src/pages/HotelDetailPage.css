@@ -1,0 +1,206 @@
+/*
+ * Property page: a quiet back link, a Playfair headline over the API's
+ * description, one generous gallery, then a two-column body - the stay's
+ * substance on the left, the dates card pinned on the right (stacked on
+ * top on mobile, where dates must come before rooms). Sections are
+ * separated by hairlines, like the rest of the collection.
+ */
+
+.stay {
+  padding-top: var(--space-6);
+  padding-bottom: var(--space-10);
+}
+
+.stay__back {
+  display: inline-block;
+  margin-bottom: var(--space-5);
+  font-size: var(--text-small);
+  color: var(--color-grey);
+  text-decoration: none;
+}
+
+.stay__back:hover {
+  color: var(--color-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Head ------------------------------------------------------------------- */
+
+.stay__head {
+  margin-bottom: var(--space-7);
+}
+
+.stay__title {
+  margin-top: var(--space-3);
+  font-size: var(--text-page);
+}
+
+.stay__lede {
+  max-width: 62ch;
+  margin-top: var(--space-4);
+  color: var(--color-ink-soft);
+}
+
+.stay__from {
+  margin-top: var(--space-4);
+  font-weight: 600;
+  color: var(--color-gold-muted);
+}
+
+.stay__from span {
+  font-weight: 400;
+  color: var(--color-grey);
+}
+
+/* Body grid --------------------------------------------------------------- */
+
+.stay__body {
+  display: grid;
+  gap: var(--space-7);
+  margin-top: var(--space-8);
+}
+
+.stay__main {
+  min-width: 0;
+}
+
+.stay__aside {
+  min-width: 0;
+}
+
+@media (min-width: 1024px) {
+  .stay__body {
+    grid-template-columns: minmax(0, 1fr) 360px;
+  }
+
+  .stay__main {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .stay__aside {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: start;
+    position: sticky;
+    top: calc(var(--header-height) + var(--space-6));
+  }
+
+  /* The dates bar carries its own top margin for in-flow use; inside the
+   * sticky aside it should sit flush. */
+  .stay__aside .stay-bar {
+    margin-top: 0;
+  }
+}
+
+/* Sections ---------------------------------------------------------------- */
+
+.stay__section {
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--color-border);
+}
+
+.stay__section + .stay__section {
+  margin-top: var(--space-7);
+}
+
+.stay__section h2 {
+  margin-bottom: var(--space-5);
+  font-size: var(--text-section);
+}
+
+/* Aside summary ------------------------------------------------------------ */
+
+.stay__summary {
+  margin-top: var(--space-4);
+}
+
+.stay__summary-note {
+  font-size: var(--text-small);
+  color: var(--color-grey);
+}
+
+.stay__summary-note--closed {
+  color: var(--color-warning);
+}
+
+.stay__reserve {
+  width: 100%;
+  margin-top: var(--space-3);
+}
+
+/* Missing / error states ---------------------------------------------------- */
+
+.stay--missing {
+  padding-top: var(--space-9);
+  padding-bottom: var(--space-11);
+}
+
+.stay--missing .btn {
+  margin-top: var(--space-5);
+}
+
+.stay--missing .notice {
+  margin-top: var(--space-5);
+}
+
+/* Loading skeleton ----------------------------------------------------------- */
+
+.stay__skeleton-line {
+  height: 16px;
+  width: 45%;
+  margin-top: var(--space-4);
+  border-radius: 999px;
+  background: var(--color-cream);
+  animation: stay-breathe 1.6s ease-in-out infinite;
+}
+
+.stay__skeleton-line--eyebrow {
+  width: 18%;
+  margin-top: 0;
+}
+
+.stay__skeleton-line--title {
+  width: 62%;
+  height: 34px;
+}
+
+.stay__skeleton-line--soft {
+  width: 85%;
+}
+
+.stay__skeleton-gallery {
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-lg);
+  background: var(--color-cream);
+  animation: stay-breathe 1.6s ease-in-out infinite;
+}
+
+.stay__skeleton-panel {
+  height: 220px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-white);
+  animation: stay-breathe 1.6s ease-in-out infinite;
+}
+
+@keyframes stay-breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+.stay__sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

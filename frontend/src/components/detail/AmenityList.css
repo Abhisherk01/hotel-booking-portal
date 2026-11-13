@@ -1,0 +1,45 @@
+/* Amenity presentation: hairline tiles with a gold-stroked glyph, the
+ * same quiet luxury as every other list on the site. */
+
+.amenity-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-3);
+}
+
+.amenity-list--empty {
+  display: block;
+  color: var(--color-grey);
+}
+
+.amenity-list li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.amenity-list__icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--color-gold-muted);
+}
+
+.amenity-list__icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.amenity-list__name {
+  font-size: var(--text-small);
+  color: var(--color-ink-soft);
+}
+
+@media (max-width: 519px) {
+  .amenity-list {
+    grid-template-columns: 1fr;
+  }
+}

@@ -5,6 +5,7 @@
  */
 
 .hotel-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   background: var(--color-white);
@@ -19,6 +20,30 @@
 .hotel-card:hover {
   box-shadow: var(--shadow-hover);
   transform: translateY(-2px);
+}
+
+/* The name link stretches across the whole card so the card reads as one
+ * target; interactive controls placed above it (z-index) stay clickable. */
+.hotel-card__name-link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.hotel-card__name-link:focus-visible {
+  outline: none;
+}
+
+.hotel-card__name-link:focus-visible::after {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 3px;
+  border-radius: var(--radius-lg);
+}
+
+.hotel-card__action {
+  position: relative;
+  z-index: 2;
 }
 
 .hotel-card__media {

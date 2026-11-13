@@ -1,0 +1,159 @@
+/* Room rows: name and capacity on the left, the stay arithmetic in the
+ * middle, the honest answer (with the reserve action) on the right.
+ * Sold-out rows stay visible and readable - a greyed row explains itself. */
+
+.rooms__context {
+  font-size: var(--text-small);
+  color: var(--color-grey);
+  margin-bottom: var(--space-4);
+}
+
+.rooms__quiet {
+  font-size: var(--text-small);
+  color: var(--color-grey);
+  max-width: 56ch;
+}
+
+.rooms__list {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.rooms__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-5);
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  transition: border-color var(--duration-fast) var(--ease-out);
+}
+
+.rooms__row:hover {
+  border-color: var(--color-gold);
+}
+
+.rooms__name {
+  font-size: var(--text-card-title);
+}
+
+.rooms__capacity {
+  margin-top: var(--space-1);
+  font-size: var(--text-micro);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-grey);
+}
+
+.rooms__rate {
+  text-align: right;
+}
+
+.rooms__price {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.rooms__price span {
+  font-size: var(--text-small);
+  font-weight: 400;
+  color: var(--color-grey);
+}
+
+.rooms__total {
+  margin-top: var(--space-1);
+  font-size: var(--text-small);
+  color: var(--color-grey);
+}
+
+.rooms__cta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+
+.rooms__flag {
+  font-size: var(--text-micro);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.rooms__flag--open {
+  color: var(--color-success);
+}
+
+.rooms__flag--closed {
+  color: var(--color-error);
+}
+
+.rooms__book {
+  min-height: 44px;
+}
+
+.rooms__closed-note {
+  font-size: var(--text-micro);
+  color: var(--color-grey);
+}
+
+.rooms__row--closed {
+  background: transparent;
+}
+
+.rooms__row--closed .rooms__name,
+.rooms__row--closed .rooms__price {
+  color: var(--color-grey);
+}
+
+.rooms__row--undated .rooms__rate {
+  text-align: right;
+}
+
+.rooms__row--skeleton {
+  gap: var(--space-4);
+}
+
+.rooms__skeleton-line {
+  height: 16px;
+  width: 55%;
+  border-radius: 999px;
+  background: var(--color-cream);
+  animation: rooms-breathe 1.6s ease-in-out infinite;
+}
+
+.rooms__skeleton-line--short {
+  width: 28%;
+}
+
+@keyframes rooms-breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 767px) {
+  .rooms__row {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+  }
+
+  .rooms__rate {
+    text-align: left;
+  }
+
+  .rooms__cta {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+  }
+}

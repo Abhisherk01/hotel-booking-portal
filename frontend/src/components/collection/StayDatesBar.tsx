@@ -12,6 +12,10 @@ type StayDatesBarProps = {
   warnInvalid: boolean
   onApply: (dates: { checkIn: string; checkOut: string }) => void
   onClear: () => void
+  /** Input id prefix so two pages never fight over one DOM id. */
+  idPrefix?: string
+  /** Overrides the built-in "checked live against each hotel" sentence. */
+  contextNote?: string
 }
 
 /*
@@ -21,7 +25,15 @@ type StayDatesBarProps = {
  * availability". Validation mirrors the homepage panel and the backend's
  * StayDates rules, so a bad range never reaches the API.
  */
-export function StayDatesBar({ checkIn, checkOut, warnInvalid, onApply, onClear }: StayDatesBarProps) {
+export function StayDatesBar({
+  checkIn,
+  checkOut,
+  warnInvalid,
+  onApply,
+  onClear,
+  idPrefix = 'collection',
+  contextNote,
+}: StayDatesBarProps) {
   const [draftCheckIn, setDraftCheckIn] = useState(checkIn)
   const [draftCheckOut, setDraftCheckOut] = useState(checkOut)
   const [errors, setErrors] = useState<{ checkIn?: string; checkOut?: string }>({})
@@ -73,9 +85,9 @@ export function StayDatesBar({ checkIn, checkOut, warnInvalid, onApply, onClear 
         <p className="stay-bar__label">Your dates</p>
 
         <div className="stay-bar__field">
-          <label htmlFor="collection-check-in">Check-in</label>
+          <label htmlFor={`${idPrefix}-check-in`}>Check-in</label>
           <input
-            id="collection-check-in"
+            id={`${idPrefix}-check-in`}
             type="date"
             min={today}
             value={draftCheckIn}
@@ -85,9 +97,9 @@ export function StayDatesBar({ checkIn, checkOut, warnInvalid, onApply, onClear 
         </div>
 
         <div className="stay-bar__field">
-          <label htmlFor="collection-check-out">Check-out</label>
+          <label htmlFor={`${idPrefix}-check-out`}>Check-out</label>
           <input
-            id="collection-check-out"
+            id={`${idPrefix}-check-out`}
             type="date"
             min={draftCheckIn || today}
             value={draftCheckOut}
@@ -113,8 +125,8 @@ export function StayDatesBar({ checkIn, checkOut, warnInvalid, onApply, onClear 
 
       {hasDates && !dirty && (
         <p className="stay-bar__context">
-          {formatStayRange(checkIn, checkOut)} · {nightsLabel(nightsBetween(checkIn, checkOut))} ·
-          availability checked live against each hotel
+          {formatStayRange(checkIn, checkOut)} · {nightsLabel(nightsBetween(checkIn, checkOut))} ·{' '}
+          {contextNote ?? 'availability checked live against each hotel'}
         </p>
       )}
       {!hasDates && !warnInvalid && (

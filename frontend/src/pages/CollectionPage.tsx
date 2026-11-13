@@ -352,6 +352,18 @@ export function CollectionPage() {
     .filter((summary): summary is HotelSummary => Boolean(summary))
   const compareLimitReached = compareIds.length >= COMPARE_LIMIT
 
+  /** Card links carry the town and dates so the property page (and its
+   * back link) lands in the same context the visitor is browsing in. */
+  const detailQuery = useMemo(() => {
+    const params = new URLSearchParams()
+    if (activeTown) params.set('destination', activeTown)
+    if (dates) {
+      params.set('checkIn', dates.checkIn)
+      params.set('checkOut', dates.checkOut)
+    }
+    return params.toString()
+  }, [activeTown, dates])
+
   const contextLine = dates
     ? `${formatStayRange(dates.checkIn, dates.checkOut)} · ${nightsLabel(
         nightsBetween(dates.checkIn, dates.checkOut),
@@ -545,6 +557,7 @@ export function CollectionPage() {
                           stay={dates ? (stays[hotel.id] ?? null) : null}
                           stayFailed={Boolean(dates) && stays[hotel.id] === null}
                           nights={dates ? nightsBetween(dates.checkIn, dates.checkOut) : 0}
+                          linkTo={`/hotels/${hotel.id}${detailQuery ? `?${detailQuery}` : ''}`}
                           action={
                             <button
                               type="button"
