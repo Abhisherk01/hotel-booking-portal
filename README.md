@@ -2,7 +2,7 @@
 
 A full-stack hotel booking application: browse hotels, check date availability, book one room, retrieve and cancel reservations - built as a technical interview assignment.
 
-**Current status:** Phase 3 of 9 complete (database layer + the full REST API: controllers, DTOs, booking transaction, curated error envelope). The web client arrives in Phase 5. This README documents only what exists right now.
+**Current status:** Phase 4 of 9 complete (database layer + the full REST API + the automated test suite: REST contract, price math, availability rules and the concurrency regression). The web client arrives in Phase 5. This README documents only what exists right now.
 
 ## Stack (backend)
 
@@ -14,7 +14,7 @@ A full-stack hotel booking application: browse hotels, check date availability, 
 | Database | H2 (MySQL compatibility mode) for development, MySQL 8.4 for full local runs |
 | Build | Maven 3.9 (wrapper included, no local Maven install required) |
 | API docs | springdoc OpenAPI (`/swagger-ui.html`, `/v3/api-docs`) |
-| Tests | JUnit 5 + AssertJ + Spring Boot Test (15 database-layer tests) |
+| Tests | JUnit 5 + AssertJ + Spring Boot Test (56 tests: database layer, REST contract, money & availability rules, concurrency regression) |
 
 ## Repository layout
 
@@ -36,13 +36,14 @@ backend/                       Spring Boot REST API (port 8080)
     db/migration/
       V1__schema.sql           four tables, constraints, availability index
       V2__sample_data.sql      five seeded hotels, INR pricing, amenities
-  src/test/java/               database-layer tests (migrations, seed, repositories)
-  src/test/resources/          test datasource: in-memory H2, MySQL mode
+  src/test/java/               database, REST contract and concurrency tests
+  src/test/resources/          test datasources: in-memory H2 (default), MySQL via profile
   docker-compose.yml           MySQL 8.4 for the local database profile
   .env.example                 environment template (copy to .env, never committed)
 docs/
   DATABASE.md                  schema documentation and verification guide
   API.md                       REST contract, error codes, business rules
+  TESTING.md                   test strategy, both database legs, what each proves
 frontend/                      arrives in Phase 5
 ```
 
@@ -121,7 +122,7 @@ cd backend
 ./mvnw test
 ```
 
-15 database-layer tests run against in-memory H2 in MySQL compatibility mode - the same migration files are exercised, just not the file database behind the running app. The REST layer itself is verified end-to-end over HTTP on every delivery (see `docs/API.md`); the automated controller and service test suite, including the concurrency regression test, is Phase 4 scope. Coverage:
+56 tests run by default against in-memory H2 in MySQL compatibility mode: the four database-layer classes from the schema work, the REST contract tests for all eight endpoints, the price and availability rule tests, and the concurrency regression. Every contract and service test rolls back inside one transaction, so the suite is repeatable and order-independent; the concurrency test brings its own fixture and cleans up after itself. Strategy, isolation model and result interpretation live in `docs/TESTING.md`.
 
 | Suite | What it proves |
 |---|---|
@@ -129,12 +130,21 @@ cd backend
 | `SeedDataTest` | five circuit hotels; 5-7 distinct amenities each; exactly one room category per hotel, capacity 1, positive 2-decimal price |
 | `BookingRepositoryTest` | frozen-quote round-trip; duplicate reference rejected; the half-open overlap truth table; cancelled bookings release the room |
 | `RoomTypeRepositoryTest` | `SELECT ... FOR UPDATE` reader works; categories listable per hotel |
+| `HotelApiContractTest` | hotel endpoints over HTTP: shapes, sorted amenities, generic 404s, parameter validation |
+| `BookingApiContractTest` | booking endpoints over HTTP: 201/200/400/404/405/409, the five-field error envelope, identical generic 404 bodies, input trimming |
+| `BookingConcurrencyTest` | six simultaneous POSTs fight for one room through the real stack: exactly one 201, five 409 `BOOKING_UNAVAILABLE`, one persisted row |
+| `PriceCalculationTest` | single/multi-night math; quote follows the current price; bookings freeze the agreed price; post-reprice bookings take the new price |
+| `AvailabilityRulesTest` | overlaps block; half-open edges bookable; same-day turnover; cancellation releases inventory; quotes advisory, booking rechecks |
+| `BookingReferenceGeneratorTest` | `HB-` format, transcribable alphabet (no 0/1/I/O), uniqueness at volume |
 
-The identical suite runs against real MySQL when Docker is available:
+The identical suite runs against real MySQL 8.4 when Docker is available:
 
 ```bash
+docker compose up -d            # from backend/, after .env is configured
 SPRING_PROFILES_ACTIVE=mysql ./mvnw test
 ```
+
+What each leg proves differs in one important way: the H2 leg verifies the booking transaction's lock-recount-compare-persist shape under H2 row locks, while only the MySQL leg exercises InnoDB's `SELECT ... FOR UPDATE` itself. Any test report should name the engine it ran on (`docs/TESTING.md` spells this out).
 
 ## Configuration notes
 
@@ -166,11 +176,11 @@ Five properties on the classic Indian leisure circuit, one room category each (c
 | `POST /api/bookings/lookup` | live |
 | `POST /api/bookings/{reference}/cancel` | live |
 
-## Known limitations (as of Phase 3)
+## Known limitations (as of Phase 4)
 
 - No authentication: whoever holds a booking reference can look it up and cancel it. The assignment scope has no accounts.
 - No cancel-by cutoff: a stay whose check-in date has passed can still be cancelled. The spec defined no cutoff; adding one is a single service check.
-- The concurrency regression test (two simultaneous bookings fighting for the last room) is specified and scheduled for Phase 4. It will drive two concurrent `POST /api/bookings` attempts against the pessimistic row lock that the booking transaction already uses.
+- The concurrency regression is automated (`BookingConcurrencyTest`: six simultaneous bookings, exactly one winner). On the default H2 leg it verifies the transaction's lock-recount-compare-persist shape in MySQL compatibility mode; only the MySQL leg exercises InnoDB row locks itself, and the test report must state which engine ran.
 - The test suite was executed against H2 in MySQL compatibility mode in the build environment; the MySQL run of the same suite is one documented command away (`SPRING_PROFILES_ACTIVE=mysql ./mvnw test`) - see `docs/DATABASE.md`.
 - H2 in MySQL mode is not byte-for-byte identical to MySQL (index hint syntax, some DDL nuances, identifier casing - all documented in `docs/DATABASE.md`). The MySQL profile exists precisely to verify real behaviour; migrations are written to run on both engines.
 - The git author identity is the sandbox default (`Z User <z@container>`) - rewrite it before publishing (`git rebase -i` with `--exec 'git commit --amend --reset-author'`, or set `git config user.name/user.email` first).

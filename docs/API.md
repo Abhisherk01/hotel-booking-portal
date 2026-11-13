@@ -1,8 +1,9 @@
 # REST API
 
-Contract for the hotel booking API as of Phase 3. Everything below is
-implemented and exercised end-to-end on the H2 (MySQL mode) profile; the
-same behaviour runs unchanged on the MySQL profile.
+Contract for the hotel booking API as of Phase 4. Everything below is
+implemented, documented here, and pinned by the automated REST contract
+tests (`docs/TESTING.md`); the same behaviour runs unchanged on the MySQL
+profile.
 
 - **Base URL:** `http://localhost:8080`
 - **Content type:** `application/json` for request and response bodies
@@ -114,8 +115,9 @@ lookup and cancellation.
 ```
 
 Lookup is a POST on purpose: the reference then never sits in a URL path,
-an access log or a `Referrer` header. Unknown and mistyped references
-return the same generic 404 as everything else.
+an access log or a `Referrer` header. Unknown references return the same
+generic 404 as everything else; input longer than the 12-character column
+is rejected as a 400 before the database is consulted.
 
 ### `POST /api/bookings/{reference}/cancel`
 
