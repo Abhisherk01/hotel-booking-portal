@@ -1,0 +1,195 @@
+/* Comparison dialog: a dark scrim, an ivory sheet, and one grid where the
+ * label column stays still while the stay columns align row for row. On
+ * narrow screens the columns scroll sideways instead of collapsing, so a
+ * comparison still reads as a comparison. */
+
+.compare-modal {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+  background: rgba(32, 32, 29, 0.55);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+}
+
+.compare-modal__dialog {
+  width: 100%;
+  max-width: 1080px;
+  max-height: min(92dvh, 860px);
+  display: flex;
+  flex-direction: column;
+  background: var(--color-ivory);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  overflow: hidden;
+}
+
+@media (min-width: 640px) {
+  .compare-modal {
+    align-items: center;
+    padding: var(--space-6);
+  }
+
+  .compare-modal__dialog {
+    border-radius: var(--radius-xl);
+  }
+}
+
+.compare-modal__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-5);
+  padding: var(--space-6) var(--space-6) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.compare-modal__head h2 {
+  margin-top: var(--space-2);
+  font-size: var(--text-section);
+}
+
+.compare-modal__close {
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: var(--space-2) var(--space-4);
+  background: transparent;
+  border: 1px solid var(--color-ink);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-small);
+  color: var(--color-ink);
+}
+
+.compare-modal__close:hover {
+  background: var(--color-ink);
+  color: var(--color-ivory);
+}
+
+.compare-modal__scroller {
+  overflow: auto;
+  flex: 1;
+}
+
+.compare-modal__grid {
+  display: grid;
+  grid-template-columns: minmax(104px, 130px) repeat(var(--columns), minmax(220px, 1fr));
+  min-width: min-content;
+}
+
+.compare-modal__cell {
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-small);
+  line-height: 1.5;
+  color: var(--color-ink-soft);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  justify-content: center;
+}
+
+.compare-modal__cell--label {
+  justify-content: center;
+  font-size: var(--text-micro);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-gold-muted);
+  background: var(--color-cream);
+}
+
+.compare-modal__label-hint {
+  font-size: var(--text-micro);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: var(--color-grey);
+}
+
+.compare-modal__media {
+  padding: var(--space-4) var(--space-4) 0;
+  background: var(--color-white);
+}
+
+.compare-modal__media img,
+.compare-modal__media .smart-image-fallback {
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+}
+
+.compare-modal__name {
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  line-height: 1.3;
+  color: var(--color-ink);
+}
+
+.compare-modal__town {
+  font-size: var(--text-micro);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-gold-muted);
+}
+
+.compare-modal__cell--rate {
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.compare-modal__total {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  color: var(--color-ink);
+}
+
+.compare-modal__flag {
+  font-size: var(--text-micro);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 2px 10px;
+}
+
+.compare-modal__flag--open {
+  color: var(--color-success);
+}
+
+.compare-modal__flag--closed {
+  color: var(--color-warning);
+}
+
+.compare-modal__pending,
+.compare-modal__muted {
+  color: var(--color-grey);
+}
+
+.compare-modal__amenities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.compare-modal__amenities li {
+  font-size: var(--text-micro);
+  color: var(--color-ink-soft);
+  background: var(--color-cream);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+.compare-modal__footnote {
+  padding: var(--space-4) var(--space-6) var(--space-5);
+  font-size: var(--text-micro);
+  color: var(--color-grey);
+  border-top: 1px solid var(--color-border);
+  background: var(--color-white);
+}

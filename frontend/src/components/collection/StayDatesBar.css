@@ -1,0 +1,108 @@
+/*
+ * The dates strip: quiet by design, because it sits between the page
+ * heading and the results on every visit. Ivory field, hairline border,
+ * gold only on the apply button.
+ */
+
+.stay-bar {
+  margin-top: var(--space-6);
+  padding: var(--space-5);
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  max-width: 860px;
+}
+
+.stay-bar__form {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.stay-bar__label {
+  width: 100%;
+  font-size: var(--text-micro);
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-gold-muted);
+}
+
+.stay-bar__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.stay-bar__field label {
+  font-size: var(--text-micro);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-grey);
+}
+
+.stay-bar__field input {
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  font: inherit;
+  font-size: var(--text-small);
+  color: var(--color-ink);
+  background: var(--color-ivory);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.stay-bar__field input:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 1px;
+}
+
+.stay-bar__apply {
+  min-height: 44px;
+}
+
+.stay-bar__clear {
+  align-self: center;
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  background: none;
+  font-size: var(--text-small);
+  color: var(--color-grey);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.stay-bar__clear:hover {
+  color: var(--color-ink);
+}
+
+.stay-bar__context {
+  margin-top: var(--space-4);
+  font-size: var(--text-small);
+  color: var(--color-grey);
+}
+
+.stay-bar__context--quiet {
+  color: var(--color-grey);
+}
+
+.stay-bar__warning {
+  margin-top: var(--space-3);
+  font-size: var(--text-small);
+  color: var(--color-warning);
+}
+
+@media (max-width: 639px) {
+  .stay-bar__form {
+    align-items: stretch;
+  }
+
+  .stay-bar__field {
+    flex: 1 1 100%;
+  }
+
+  .stay-bar__apply {
+    flex: 1;
+  }
+}

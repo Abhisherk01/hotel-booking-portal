@@ -1,0 +1,132 @@
+/*
+ * The search panel is a self-contained card so it can sit over the hero
+ * photograph. Mobile-first: fields stack. From 640px the two dates share
+ * a row. From 1024px it becomes a single horizontal bar with hairline
+ * dividers, the classic concierge-desk layout.
+ */
+
+.search-panel {
+  display: grid;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-hover);
+  overflow: hidden;
+}
+
+.search-panel__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
+}
+
+.search-panel__field label {
+  font-size: var(--text-micro);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-grey);
+}
+
+.search-panel__field select,
+.search-panel__field input {
+  font: inherit;
+  font-size: 0.9375rem;
+  color: var(--color-ink);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: var(--space-1) 0;
+  min-height: 44px;
+  width: 100%;
+}
+
+/* The disabled first option should not paint itself dark grey. */
+.search-panel__field select:invalid,
+.search-panel__field select option[value=''] {
+  color: var(--color-grey);
+}
+
+.search-panel__field select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5' fill='none' stroke='%23a98b58' stroke-width='1.6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right center;
+  padding-right: var(--space-6);
+}
+
+.search-panel__field input[type='date'] {
+  min-height: 44px;
+}
+
+.search-panel__field select:focus-visible,
+.search-panel__field input:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: -2px;
+  border-radius: var(--radius-sm);
+}
+
+.search-panel__submit {
+  border-radius: 0;
+  min-height: 64px;
+  white-space: nowrap;
+}
+
+.search-panel__errors {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
+  background: rgba(182, 76, 67, 0.07);
+  border-top: 1px solid var(--color-border);
+  font-size: var(--text-small);
+  color: var(--color-error);
+}
+
+/* Tablet: destination gets its own row, the dates share the second one. */
+@media (min-width: 640px) {
+  .search-panel__field--destination {
+    grid-column: 1 / -1;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .search-panel__field:not(.search-panel__field--destination) {
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .search-panel__submit {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Desktop: one horizontal bar, dividers instead of stacked borders. */
+@media (min-width: 1024px) {
+  .search-panel {
+    grid-template-columns: minmax(220px, 1.3fr) minmax(170px, 1fr) minmax(170px, 1fr) auto;
+  }
+
+  .search-panel__field {
+    border-bottom: none;
+  }
+
+  .search-panel__field--destination {
+    grid-column: auto;
+    border-bottom: none;
+    border-right: 1px solid var(--color-border);
+  }
+
+  .search-panel__field:nth-of-type(2) {
+    border-right: 1px solid var(--color-border);
+  }
+
+  .search-panel__submit {
+    grid-column: auto;
+  }
+
+  .search-panel__errors {
+    grid-column: 1 / -1;
+    border-top: 1px solid var(--color-border);
+  }
+}

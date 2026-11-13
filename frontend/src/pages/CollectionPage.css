@@ -1,0 +1,282 @@
+/*
+ * Collection listing page: a heading that states what the API is showing,
+ * a quiet dates strip, one filter rail and one results grid. Sections
+ * alternate ivory / cream like the rest of the site; the grid reuses the
+ * homepage card so a stay looks the same wherever it is listed.
+ */
+
+.collection__head {
+  padding-top: var(--space-8);
+  padding-bottom: var(--space-7);
+}
+
+.collection__title {
+  margin-top: var(--space-3);
+  font-size: var(--text-page);
+}
+
+.collection__lede {
+  max-width: 62ch;
+  margin-top: var(--space-4);
+  color: var(--color-ink-soft);
+}
+
+/* Body: rail + results ---------------------------------------------------- */
+
+.collection__body {
+  display: grid;
+  gap: var(--space-7);
+  padding-bottom: var(--space-10);
+}
+
+.collection__rail {
+  min-width: 0;
+}
+
+.collection__filters-toggle {
+  display: none;
+}
+
+.collection__filters-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  background: var(--color-gold);
+  border-radius: 999px;
+  font-size: var(--text-micro);
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+/* Results ------------------------------------------------------------------ */
+
+.collection__results {
+  min-width: 0;
+}
+
+.collection__results-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.collection__results-head h2 {
+  font-size: var(--text-section);
+}
+
+.collection__results-head h2:focus-visible {
+  outline: none;
+}
+
+.collection__context {
+  margin-top: var(--space-2);
+  font-size: var(--text-small);
+  color: var(--color-grey);
+}
+
+.collection__sort {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.collection__sort label {
+  font-size: var(--text-micro);
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-grey);
+}
+
+.collection__sort select {
+  min-height: 44px;
+  padding: var(--space-2) var(--space-4);
+  font: inherit;
+  font-size: var(--text-small);
+  color: var(--color-ink);
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.collection__grid {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.collection__grid li {
+  display: flex;
+}
+
+.collection__grid .hotel-card {
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  .collection__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .collection__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Empty states -------------------------------------------------------------- */
+
+.collection__empty-lede {
+  max-width: 560px;
+  color: var(--color-ink-soft);
+}
+
+.collection__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+}
+
+.collection__chip {
+  padding: var(--space-2) var(--space-5);
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  font-size: var(--text-small);
+  font-weight: 500;
+  color: var(--color-ink);
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
+}
+
+.collection__chip:hover {
+  border-color: var(--color-gold);
+  background: var(--color-cream);
+}
+
+.collection__empty {
+  max-width: 620px;
+  padding: var(--space-6);
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-warning);
+  border-radius: var(--radius-md);
+}
+
+.collection__empty h3 {
+  font-size: var(--text-section);
+}
+
+.collection__empty p {
+  margin-top: var(--space-3);
+  color: var(--color-ink-soft);
+}
+
+.collection__empty .btn {
+  margin-top: var(--space-5);
+}
+
+/* Compare toggle on each card ------------------------------------------------ */
+
+.compare-toggle {
+  padding: 7px 16px;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  font-size: var(--text-small);
+  font-weight: 500;
+  color: var(--color-ink);
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+}
+
+.compare-toggle:hover {
+  border-color: var(--color-gold);
+  background: var(--color-cream);
+}
+
+.compare-toggle.is-active {
+  background: var(--color-gold);
+  border-color: var(--color-gold);
+  color: var(--color-ink);
+}
+
+.compare-toggle:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Room for the floating tray at the bottom ----------------------------------- */
+
+.collection--with-tray {
+  padding-bottom: 140px;
+}
+
+/* Screen-reader-only helper --------------------------------------------------- */
+
+.collection__sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Responsive ------------------------------------------------------------------
+ * Tablet: the rail becomes a collapsible panel above the results.
+ * Desktop: a sticky sidebar beside them. */
+
+@media (max-width: 1023px) {
+  .collection__filters {
+    display: none;
+  }
+
+  .collection__filters.is-open {
+    display: block;
+    margin-top: var(--space-4);
+    padding: var(--space-5);
+    background: var(--color-white);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+  }
+
+  .collection__filters-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-height: 44px;
+    padding: var(--space-2) var(--space-5);
+    background: var(--color-white);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-size: var(--text-small);
+    font-weight: 500;
+    color: var(--color-ink);
+  }
+}
+
+@media (min-width: 1024px) {
+  .collection__body {
+    grid-template-columns: 264px minmax(0, 1fr);
+    gap: var(--space-8);
+    align-items: start;
+  }
+
+  .collection__rail {
+    position: sticky;
+    top: calc(var(--header-height) + var(--space-4));
+  }
+}

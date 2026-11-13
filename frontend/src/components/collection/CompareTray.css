@@ -1,0 +1,126 @@
+/* Floating selection bar for the ≤3-hotel comparison. Dark ink strip so
+ * it reads as furniture, not content; the page bottom gains matching
+ * padding while it is visible. */
+
+.compare-tray {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-overlay);
+  background: var(--color-dark);
+  color: var(--color-ivory);
+  box-shadow: 0 -10px 30px rgba(32, 32, 29, 0.25);
+}
+
+.compare-tray__inner {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-5);
+  padding-top: var(--space-4);
+  padding-bottom: var(--space-4);
+}
+
+.compare-tray__count {
+  font-size: var(--text-small);
+  color: rgba(250, 248, 243, 0.75);
+}
+
+.compare-tray__count-strong {
+  font-weight: 600;
+  color: var(--color-ivory);
+}
+
+.compare-tray__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 0;
+}
+
+.compare-tray__item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: 100%;
+  padding: 4px 6px 4px 14px;
+  background: rgba(250, 248, 243, 0.08);
+  border: 1px solid rgba(250, 248, 243, 0.25);
+  border-radius: 999px;
+}
+
+.compare-tray__name {
+  font-size: var(--text-small);
+  color: var(--color-ivory);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 30ch;
+}
+
+.compare-tray__remove {
+  border: none;
+  background: none;
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-micro);
+  letter-spacing: 0.04em;
+  color: rgba(250, 248, 243, 0.65);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.compare-tray__remove:hover {
+  color: var(--color-ivory);
+}
+
+.compare-tray__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.compare-tray__compare {
+  min-height: 44px;
+}
+
+.compare-tray__clear {
+  border: none;
+  background: none;
+  font-size: var(--text-small);
+  color: rgba(250, 248, 243, 0.65);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.compare-tray__clear:hover {
+  color: var(--color-ivory);
+}
+
+.compare-tray__limit {
+  padding-top: 0;
+  padding-bottom: var(--space-4);
+  font-size: var(--text-micro);
+  color: var(--color-gold);
+}
+
+@media (max-width: 639px) {
+  .compare-tray__inner {
+    gap: var(--space-3);
+  }
+
+  .compare-tray__list {
+    order: 3;
+    flex-basis: 100%;
+  }
+
+  .compare-tray__actions {
+    flex: 1;
+    justify-content: flex-end;
+  }
+
+  .compare-tray__compare {
+    flex: 1;
+  }
+}

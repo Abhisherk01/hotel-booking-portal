@@ -1,0 +1,18 @@
+.not-found {
+  padding-block: var(--space-11);
+  max-width: 640px;
+}
+
+.not-found__title {
+  font-size: var(--text-page);
+  margin-top: var(--space-3);
+}
+
+.not-found__lede {
+  margin-top: var(--space-4);
+  color: var(--color-ink-soft);
+}
+
+.not-found__cta {
+  margin-top: var(--space-6);
+}

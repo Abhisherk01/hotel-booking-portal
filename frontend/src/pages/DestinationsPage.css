@@ -1,0 +1,23 @@
+/* Destinations page: a short editorial head, then the shared town cards.
+ * The grid itself lives with DestinationCard so the homepage and this page
+ * never drift apart. */
+
+.destinations__head {
+  padding-top: var(--space-8);
+  padding-bottom: var(--space-7);
+}
+
+.destinations__title {
+  margin-top: var(--space-3);
+  font-size: var(--text-page);
+}
+
+.destinations__lede {
+  max-width: 62ch;
+  margin-top: var(--space-4);
+  color: var(--color-ink-soft);
+}
+
+.destinations__body {
+  padding-bottom: var(--space-10);
+}

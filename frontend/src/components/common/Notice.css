@@ -1,0 +1,33 @@
+/* Shared notice card. Same visual grammar as the homepage's own notice
+ * (tokens for colour, a single 3px edge for tone), just componentised so
+ * the collection and destinations pages can speak the same way. */
+
+.notice {
+  max-width: 620px;
+  padding: var(--space-6);
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-error);
+  border-radius: var(--radius-md);
+}
+
+.notice--info {
+  border-left-color: var(--color-info);
+}
+
+.notice h3 {
+  font-size: var(--text-section);
+}
+
+.notice p {
+  margin-top: var(--space-3);
+  color: var(--color-ink-soft);
+}
+
+.notice p + p {
+  margin-top: var(--space-2);
+}
+
+.notice .btn {
+  margin-top: var(--space-5);
+}
