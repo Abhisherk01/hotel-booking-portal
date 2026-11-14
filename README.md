@@ -2,7 +2,21 @@
 
 A full-stack hotel booking application: browse hotels, check date availability, book one room, retrieve and cancel reservations - built as a technical interview assignment.
 
-**Current status:** Phase 5 in progress (backend complete through Phase 4: database layer, full REST API, automated test suite; frontend Milestone A shipped the design system, global layout, navigation and footer; Milestone B the homepage; Milestone C the collection listing with filters, sorting, dated availability and compare; Milestone D the hotel detail page and the review → guest → quote → confirm booking flow; Milestone E the Manage Booking page - lookup by reference + email, cancellation with a confirmation dialog). This README documents only what exists right now.
+**Current status:** Feature-complete and submission-ready (Milestone F). The backend ships the full REST API with its automated 66-test suite green on both database legs - H2 in MySQL compatibility mode and real MySQL 8.4/InnoDB via Docker. The frontend (Milestones A-E) delivers the design system, homepage, collection listing with filters and compare, the hotel detail page with the four-step booking flow, and the Manage Booking page with reference+email lookup and email-verified cancellation. This README documents only what exists right now.
+
+## Features
+
+- **Hotel browsing and search** - five curated circuit properties with city search that matches case-blind.
+- **Collection filters** - location (town chips with live counts), price-per-night range derived from the rates the API actually returned, AND-semantics amenity chips; sort by curated order or price ascending/descending.
+- **Dated availability** - per-category availability for a half-open stay `[checkIn, checkOut)`; same-day turnover never conflicts.
+- **Compare** - pin up to three hotels and view them side by side.
+- **Booking flow** - review → guest details → price quote (exact `DECIMAL(10,2)` math) → confirmation, with client-side validation mirroring the backend's rules on the `Asia/Kolkata` clock.
+- **Manage booking** - lookup by reference + email (one generic 404 for any wrong pair, email matched case-insensitively), the booking as a ledger, and email-verified cancellation with a confirmation dialog.
+- **Concurrency-safe inventory** - one row-lock decision per booking; cancellation is a single atomic conditional UPDATE; the room returns to inventory the instant a booking flips to `CANCELLED`.
+
+## Architecture
+
+A React 18 + Vite SPA talks to a Spring Boot 3.5 REST API over JSON; Hibernate maps onto a Flyway-owned schema running on MySQL 8.4 (H2 in MySQL compatibility mode for fast development). Every failure returns one curated error envelope, every concurrency decision is made by the database under row locks, and all date arithmetic runs on the `Asia/Kolkata` business clock. The full narrative - schema, booking logic, cancellation strategy, assumptions and limitations - lives in `docs/DESIGN.md`.
 
 ## Stack (backend)
 
@@ -173,6 +187,8 @@ SPRING_PROFILES_ACTIVE=mysql ./mvnw test
 
 What each leg proves differs in one important way: the H2 leg verifies the booking transaction's lock-recount-compare-persist shape under H2 row locks, while only the MySQL leg exercises InnoDB's `SELECT ... FOR UPDATE` itself. Any test report should name the engine it ran on (`docs/TESTING.md` spells this out).
 
+**Latest execution record (Milestone F):** both legs green - H2 leg `Tests run: 66, Failures: 0, Errors: 0, Skipped: 0`; MySQL 8.4.13 leg (Docker compose, `SPRING_PROFILES_ACTIVE=mysql`) `Tests run: 66, Failures: 0, Errors: 0, Skipped: 0`.
+
 ## Configuration notes
 
 - **CORS:** browsers may call the API only from origins listed in `app.cors.allowed-origins` (default `http://localhost:3000` and Vite's `http://localhost:5173`, override with `CORS_ALLOWED_ORIGINS`). Unknown origins get `403` at the filter, before reaching any controller.
@@ -203,12 +219,25 @@ Five properties on the classic Indian leisure circuit, one room category each (c
 | `POST /api/bookings/lookup` | live |
 | `POST /api/bookings/{reference}/cancel` | live |
 
+## Screenshots
+
+Captured from the running application (Spring Boot API + Vite build), desktop 1440 px and mobile 375 px.
+
+| | |
+|---|---|
+| ![Homepage - hero, search and featured collection](docs/screenshots/home-desktop.png) | ![Collection listing with filters](docs/screenshots/collection-desktop.png) |
+| *Homepage - hero, search panel, featured collection* | *Collection listing - filters, sort, compare tray* |
+| ![Hotel detail page](docs/screenshots/hotel-detail-desktop.png) | ![Booking flow](docs/screenshots/booking-flow-desktop.png) |
+| *Hotel detail - gallery, amenities, availability* | *Booking flow - guest details, quote, confirm* |
+| ![Booking confirmation](docs/screenshots/booking-confirmation-desktop.png) | ![Manage booking](docs/screenshots/manage-booking-desktop.png) |
+| *Booking confirmation - reference and frozen figures* | *Manage booking - lookup, ledger, cancellation* |
+| ![Homepage on mobile](docs/screenshots/home-mobile.png) | ![Collection on mobile](docs/screenshots/collection-mobile.png) |
+| *Homepage on mobile (375 px)* | *Collection on mobile (375 px)* |
+
 ## Known limitations (as of Phase 4)
 
 - No authentication beyond the reference+email pair: a guest who loses both the reference and their inbox has no recovery path. The assignment scope has no accounts.
 - Hotel photography: `image_url` stays NULL for every seeded property by agreement. The frontend ships a local, catalog-driven set of assets instead (see `docs/IMAGE-INVENTORY.md`) - a future database URL overrides the catalog automatically.
 - No cancel-by cutoff: a stay whose check-in date has passed can still be cancelled. The spec defined no cutoff; adding one is a single service check.
 - The concurrency regression is automated (`BookingConcurrencyTest`: six simultaneous bookings, exactly one winner). On the default H2 leg it verifies the transaction's lock-recount-compare-persist shape in MySQL compatibility mode; only the MySQL leg exercises InnoDB row locks itself, and the test report must state which engine ran.
-- The test suite was executed against H2 in MySQL compatibility mode in the build environment; the MySQL run of the same suite is one documented command away (`SPRING_PROFILES_ACTIVE=mysql ./mvnw test`) - see `docs/DATABASE.md`.
-- H2 in MySQL mode is not byte-for-byte identical to MySQL (index hint syntax, some DDL nuances, identifier casing - all documented in `docs/DATABASE.md`). The MySQL profile exists precisely to verify real behaviour; migrations are written to run on both engines.
-- The git author identity is the sandbox default (`Z User <z@container>`) - rewrite it before publishing (`git rebase -i` with `--exec 'git commit --amend --reset-author'`, or set `git config user.name/user.email` first).
+- H2 in MySQL mode is not byte-for-byte identical to MySQL (index hint syntax, some DDL nuances, identifier casing - all documented in `docs/DATABASE.md`). The MySQL profile exists precisely to verify real behaviour; migrations are written to run on both engines, and the MySQL leg of the suite has been executed green on MySQL 8.4.13.

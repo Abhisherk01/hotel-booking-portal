@@ -104,6 +104,19 @@ against it.
   is one command away from being closed - see the engine nuances catalogued
   in `docs/DATABASE.md`.
 
+## Latest execution record (Milestone F)
+
+| Leg | Engine | Result |
+|---|---|---|
+| Default | H2 2.x in-memory, MySQL compatibility mode | `Tests run: 66, Failures: 0, Errors: 0, Skipped: 0` |
+| `SPRING_PROFILES_ACTIVE=mysql` | MySQL 8.4.13 via Docker compose, real InnoDB | `Tests run: 66, Failures: 0, Errors: 0, Skipped: 0` |
+
+Both legs ran the identical suite with nothing skipped. On the MySQL leg
+the two concurrency regressions exercised real InnoDB row locks: the
+six-way booking race ended one-201/five-409, and the four-way
+cancellation race ended exactly one-200/three-409 with a single terminal
+transition.
+
 ## Reading results
 
 Maven Surefire reports per class and in total:

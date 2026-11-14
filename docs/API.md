@@ -1,9 +1,9 @@
 # REST API
 
-Contract for the hotel booking API as of Phase 5 (Milestone E). Everything
-below is implemented, documented here, and pinned by the automated REST
-contract tests (`docs/TESTING.md`); the same behaviour runs unchanged on
-the MySQL profile.
+Contract for the hotel booking API as of the Milestone F submission
+(Phase 5 feature-complete). Everything below is implemented, documented
+here, and pinned by the automated REST contract tests (`docs/TESTING.md`);
+the same behaviour is verified on both the H2 and the MySQL legs.
 
 - **Base URL:** `http://localhost:8080`
 - **Content type:** `application/json` for request and response bodies
