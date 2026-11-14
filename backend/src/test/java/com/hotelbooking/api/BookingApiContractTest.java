@@ -316,6 +316,43 @@ class BookingApiContractTest {
     }
 
     @Test
+    void bookingBeyondThirtyNightsIsAValidationError() throws Exception {
+        // soon(1) -> soon(32) is 31 nights, one past the StayDates ceiling
+        MvcResult result = createBooking("Meera Iyer", "meera@example.in", soon(1), soon(32));
+        assertThat(result.getResponse().getStatus()).isEqualTo(400);
+
+        JsonNode body = bodyOf(result);
+        assertThat(body.get("error").asText()).isEqualTo("VALIDATION_ERROR");
+        assertThat(body.get("message").asText()).isEqualTo("A stay can span at most 30 nights.");
+    }
+
+    @Test
+    void exactlyThirtyNightsIsAccepted() throws Exception {
+        // the boundary itself stays bookable: 30 nights at the seeded rate
+        MvcResult result = createBooking("Meera Iyer", "meera@example.in", soon(1), soon(31));
+        assertThat(result.getResponse().getStatus()).isEqualTo(201);
+        assertThat(bodyOf(result).get("totalAmount").decimalValue())
+                .isEqualByComparingTo("255000.00");
+    }
+
+    @Test
+    void quoteBeyondThirtyNightsIsAValidationError() throws Exception {
+        // the same ceiling guards quoting, so no caller can price a stay it cannot book
+        MvcResult result = mockMvc.perform(post("/api/bookings/price-quote")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonOf(Map.of(
+                                "roomTypeId", 1,
+                                "checkIn", soon(1).toString(),
+                                "checkOut", soon(32).toString()))))
+                .andExpect(status().isBadRequest())
+                .andReturn();
+
+        JsonNode body = bodyOf(result);
+        assertThat(body.get("error").asText()).isEqualTo("VALIDATION_ERROR");
+        assertThat(body.get("message").asText()).isEqualTo("A stay can span at most 30 nights.");
+    }
+
+    @Test
     void cancelMarksTheBookingTerminalAndStampsTheBusinessClock() throws Exception {
         MvcResult created = createBooking("Meera Iyer", "meera@example.in", soon(2), soon(4));
         String reference = bodyOf(created).get("reference").asText();

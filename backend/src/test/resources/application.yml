@@ -25,3 +25,17 @@ app:
   business-timezone: Asia/Kolkata
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}
+  rate-limit:
+    # The suite hits the booking endpoints far more densely than any guest:
+    # the contract tests create a booking in most tests and the two
+    # concurrency races add more, all from the same client address inside
+    # one fixed window. The test ceilings therefore only keep the filter
+    # active (real code path, real registration order) without throttling
+    # the suite; the actual limit behaviour is pinned by RateLimitFilterTest,
+    # which drives the filter directly with tiny budgets and a mutable clock.
+    enabled: true
+    window-seconds: 60
+    max-booking-create: 100000
+    max-lookup: 100000
+    max-cancel: 100000
+    max-quote: 100000

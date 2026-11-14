@@ -37,7 +37,36 @@ disabled.
 | 405 | `METHOD_NOT_ALLOWED` | wrong verb on an existing path |
 | 409 | `BOOKING_UNAVAILABLE` | the room category filled while the request was in flight |
 | 409 | `BOOKING_ALREADY_CANCELLED` | cancellation hit a booking that is already terminal |
+| 429 | `RATE_LIMITED` | too many requests to a booking endpoint within one window; `Retry-After` carries the seconds until the budget resets |
 | 500 | `INTERNAL_ERROR` | anything unexpected; details go to the server log only |
+
+## Rate limiting
+
+The four booking endpoints (`POST /api/bookings`, `POST /api/bookings/lookup`,
+`POST /api/bookings/price-quote` and `POST /api/bookings/{reference}/cancel`)
+are throttled per client address in fixed 60-second windows: create, lookup
+and cancel allow 10 requests per window, quoting allows 30 (tunable via
+`app.rate-limit.*`). Going over budget answers the same five-field envelope
+with `429 RATE_LIMITED` and a `Retry-After` header counting down to the
+window edge. This throttle is single-instance defense-in-depth - the
+production authority is a gateway-level limiter, and deployments behind one
+disable the filter with `APP_RATE_LIMIT_ENABLED=false`.
+
+## Security headers
+
+Every response the API writes - 200s, validation errors, generic 404s and
+the throttle's 429 alike - carries three fixed hardening headers:
+
+| Header | Value | What it buys |
+|---|---|---|
+| `X-Content-Type-Options` | `nosniff` | the browser never reinterprets a declared content type, so no response can be sniffed into script or HTML |
+| `X-Frame-Options` | `DENY` | no frame or iframe may embed any response, closing the clickjacking door |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` | cross-origin navigation leaks only the origin, never a full URL - the booking reference stays out of third-party logs |
+
+The values are fixed security standards, not deployment-tunable policy, so
+they live in the filter (`SecurityHeadersFilter`) rather than configuration.
+A Content-Security-Policy is deliberately absent while the API serves JSON
+only; it belongs with the first HTML-serving or auth/session surface.
 
 ## Endpoints
 
@@ -153,19 +182,22 @@ and its `cancelledAt` stamp, frozen figures untouched.
    what a guest agreed to pay.
 3. **Bookable future only.** `checkIn` may not be before today, resolved
    on the `Asia/Kolkata` business clock rather than the server's clock.
-4. **Terminal cancellation.** `CANCELLED` is final; cancelling a cancelled
+4. **Maximum stay.** A stay spans at most 30 nights. Quoting, availability
+   and booking all enforce the same ceiling; 31 nights answers
+   `400 VALIDATION_ERROR` with "A stay can span at most 30 nights."
+5. **Terminal cancellation.** `CANCELLED` is final; cancelling a cancelled
    booking is a 409, not a reset.
-5. **One decision under lock.** Booking serializes on the room category's
+6. **One decision under lock.** Booking serializes on the room category's
    row (`SELECT ... FOR UPDATE`), recounts confirmed overlaps while
    holding the lock, and compares against capacity. Losers get 409
    `BOOKING_UNAVAILABLE` - a business outcome, not a server fault.
    Cancellation serializes the same way on the booking's own row, so
    simultaneous cancels of one booking produce exactly one success and
    409s for the rest.
-6. **Generic 404 everywhere.** No endpoint distinguishes "does not exist"
+7. **Generic 404 everywhere.** No endpoint distinguishes "does not exist"
    from "exists but you may not know that" - including a real reference
    paired with the wrong email on lookup or cancel.
-7. **Reference + email pair.** Both lookup and cancellation verify the
+8. **Reference + email pair.** Both lookup and cancellation verify the
    guest email against the stored booking before anything happens, and the
    comparison is case-insensitive the way mailboxes actually behave.
 

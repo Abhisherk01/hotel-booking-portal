@@ -80,6 +80,20 @@ class HotelApiContractTest {
     }
 
     @Test
+    void everyResponseCarriesTheSecurityHeaders() throws Exception {
+        // pins the real registration (SecurityHeadersConfig through the live
+        // filter chain), not just the filter class - a broken FilterRegistrationBean
+        // would pass the unit test and fail here
+        MvcResult result = mockMvc.perform(get("/api/hotels"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        assertThat(result.getResponse().getHeader("X-Content-Type-Options")).isEqualTo("nosniff");
+        assertThat(result.getResponse().getHeader("X-Frame-Options")).isEqualTo("DENY");
+        assertThat(result.getResponse().getHeader("Referrer-Policy")).isEqualTo("strict-origin-when-cross-origin");
+    }
+
+    @Test
     void hotelDetailCarriesItsRoomCategory() throws Exception {
         MvcResult result = mockMvc.perform(get("/api/hotels/1"))
                 .andExpect(status().isOk())

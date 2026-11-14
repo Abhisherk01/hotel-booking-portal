@@ -5,10 +5,11 @@ and - stated plainly - what each leg does and does not prove.
 
 ## Suite inventory
 
-66 tests across eleven classes. The four database-layer classes came with the
-schema work; the seven newer ones pin the REST contract, the money math,
-the booking race and the cancellation race, including the reference+email
-verification pair.
+77 tests across thirteen classes. The four database-layer classes came with the
+schema work; the eleven newer ones pin the REST contract, the money math,
+the booking race and the cancellation race (including the reference+email
+verification pair), and the booking-endpoint request throttle and the
+response security headers.
 
 | Class | Layer | What it proves |
 |---|---|---|
@@ -16,13 +17,15 @@ verification pair.
 | `SeedDataTest` | database | five circuit hotels; 5-7 distinct amenities each; one category per hotel, capacity 1, positive 2-decimal price |
 | `BookingRepositoryTest` | database | frozen-quote round-trip; duplicate reference rejected; the half-open overlap truth table; cancelled bookings release the room |
 | `RoomTypeRepositoryTest` | database | `SELECT ... FOR UPDATE` reader works; categories listable per hotel |
-| `HotelApiContractTest` | REST | list/detail/search/availability shapes; sorted amenities; generic 404s; missing/blank parameter and unparseable-date validation |
-| `BookingApiContractTest` | REST | quote/create/lookup/cancel; 201/200/400/404/405/409 codes; the five-field error envelope on every failure path; identical generic 404 bodies; reference+email pairing on lookup and cancel (mismatch is the same 404, email matched case-insensitively, wrong email cannot cancel); terminal-state lookup after cancellation; cancellation returns the room to inventory; guest-input trimming |
+| `HotelApiContractTest` | REST | list/detail/search/availability shapes; sorted amenities; generic 404s; missing/blank parameter and unparseable-date validation; the three security response headers on live responses |
+| `BookingApiContractTest` | REST | quote/create/lookup/cancel; 201/200/400/404/405/409 codes; the five-field error envelope on every failure path; identical generic 404 bodies; reference+email pairing on lookup and cancel (mismatch is the same 404, email matched case-insensitively, wrong email cannot cancel); terminal-state lookup after cancellation; cancellation returns the room to inventory; guest-input trimming; the 30-night maximum stay (31 nights → 400 on create and quote, exactly 30 nights still books) |
 | `BookingConcurrencyTest` | REST + database | six simultaneous POSTs fight for one room through the real HTTP stack: exactly one 201, five 409 `BOOKING_UNAVAILABLE`, exactly one persisted row |
 | `BookingCancellationConcurrencyTest` | REST + database | four simultaneous cancels of one booking through the real HTTP stack: exactly one 200, three 409 `BOOKING_ALREADY_CANCELLED`, one row stamped CANCELLED once; four wrong-email cancels all bounce off the generic 404 and leave the booking CONFIRMED for its real guest |
 | `PriceCalculationTest` | service | single-night and multi-night math; quote follows the current price; bookings freeze the agreed price; bookings after a reprice take the new price |
 | `AvailabilityRulesTest` | service | overlaps block; half-open edges bookable; same-day turnover; cancellation releases inventory; quotes stay advisory while the booking endpoint rechecks |
 | `BookingReferenceGeneratorTest` | unit | `HB-` format; transcribable alphabet (no 0/1/I/O); uniqueness at volume |
+| `RateLimitFilterTest` | unit | the booking-endpoint throttle driven directly with tiny budgets and a mutable clock: admission up to the limit, the five-field 429 envelope with `Retry-After`, fresh budget at the next window, independent per-endpoint and per-client budgets, the `APP_RATE_LIMIT_ENABLED` kill switch |
+| `SecurityHeadersFilterTest` | unit | the response-hardening filter driven directly: exactly the three headers (`nosniff`, `DENY`, `strict-origin-when-cross-origin`) on every response, no extras, and headers set before the chain runs so a short-circuited 429 is stamped too |
 
 ## Isolation model
 
@@ -83,7 +86,7 @@ export SPRING_PROFILES_ACTIVE=mysql               # PowerShell: $env:SPRING_PROF
 ./mvnw test                                       # PowerShell: .\mvnw.cmd test
 ```
 
-Flyway applies the same migrations to MySQL; the identical 66 tests run
+Flyway applies the same migrations to MySQL; the identical 77 tests run
 against it.
 
 ## What each leg proves - read this before quoting results
@@ -104,7 +107,22 @@ against it.
   is one command away from being closed - see the engine nuances catalogued
   in `docs/DATABASE.md`.
 
-## Latest execution record (Milestone F)
+## Latest execution record (Phase 3 security remediation)
+
+| Leg | Engine | Result |
+|---|---|---|
+| Default | H2 2.x in-memory, MySQL compatibility mode | `Tests run: 77, Failures: 0, Errors: 0, Skipped: 0` |
+| `SPRING_PROFILES_ACTIVE=mysql` | MySQL 8.4.13 via Docker compose, real InnoDB | re-runs automatically in CI (`clean verify`, Java 21 + MySQL 8.4 service) once the remediation lands on `main` |
+
+The Phase 3 remediation (30-night stay ceiling, booking-endpoint request
+throttle, security response headers; eleven new tests) has been verified on
+the H2 leg. The
+Milestone F record below remains the last full two-leg result for the
+66-test suite; the concurrency regressions are unchanged by the remediation
+and were green again on the H2 leg (one 201/five 409 booking race; one
+200/three 409 cancellation race with a single terminal transition).
+
+## Previous execution record (Milestone F, 66-test suite)
 
 | Leg | Engine | Result |
 |---|---|---|
@@ -122,7 +140,7 @@ transition.
 Maven Surefire reports per class and in total:
 
 ```
-Tests run: 66, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 77, Failures: 0, Errors: 0, Skipped: 0
 ```
 
 - **Failures** are assertion misses; **Errors** are crashes (connection

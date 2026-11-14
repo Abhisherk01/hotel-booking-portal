@@ -38,3 +38,16 @@ app:
     # 3000: classic React setups; 5173: Vite's dev server. Override with
     # CORS_ALLOWED_ORIGINS when deploying behind a real origin.
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}
+  rate-limit:
+    # Single-instance, fixed-window throttle on the booking endpoints - a
+    # defense-in-depth backstop, NOT the production authority. A real
+    # deployment sits behind a gateway (nginx/Cloudflare/LB) that owns rate
+    # limiting; set APP_RATE_LIMIT_ENABLED=false there, because every client
+    # then shares the gateway's one source address. Policy values live here
+    # (not in code) so a deployment can tune them without a rebuild.
+    enabled: ${APP_RATE_LIMIT_ENABLED:true}
+    window-seconds: 60
+    max-booking-create: 10
+    max-lookup: 10
+    max-cancel: 10
+    max-quote: 30

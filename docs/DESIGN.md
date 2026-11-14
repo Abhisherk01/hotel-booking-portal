@@ -18,7 +18,8 @@ Spring Boot 3.5 (port 8080)
    ├─ repository/ Spring Data JPA                      (locking + overlap queries)
    ├─ domain/     Hotel, RoomType, Booking             (JPA entities)
    ├─ error/      ApiError envelope + global handler   (curated failures)
-   └─ config/     CORS allowlist, Asia/Kolkata Clock
+   ├─ web/        RateLimitFilter, SecurityHeadersFilter (throttle + hardening headers)
+   └─ config/     CORS allowlist, Asia/Kolkata Clock, filter registration
    ▼
 JPA / Hibernate (ddl-auto: none - Flyway owns the schema)
    ▼
@@ -67,7 +68,7 @@ repricing a room never rewrites what a guest agreed to pay.
 `POST /api/bookings` (`BookingService.create`, one transaction):
 
 1. **Validate** the stay against the business clock (`Asia/Kolkata`): no
-   past check-in, `checkOut > checkIn`.
+   past check-in, `checkOut > checkIn`, at most 30 nights.
 2. **Lock** the room-category row: `SELECT ... FOR UPDATE`
    (`RoomTypeRepository.findByIdForUpdate`). Concurrent create attempts
    for the same inventory serialize here.
@@ -133,8 +134,8 @@ WHERE booking_reference = :reference
 - **One error envelope everywhere:** `timestamp`, `status`, `error`,
   `message`, `path`. `error` is the machine code (`VALIDATION_ERROR`,
   `NOT_FOUND`, `BOOKING_UNAVAILABLE`, `BOOKING_ALREADY_CANCELLED`,
-  `METHOD_NOT_ALLOWED`, `INTERNAL_ERROR`); Spring's default payload stays
-  stripped of internals.
+  `METHOD_NOT_ALLOWED`, `RATE_LIMITED`, `INTERNAL_ERROR`); Spring's default
+  payload stays stripped of internals.
 - **Identity model:** the booking reference is a locator, the guest email
   is the authority. Neither alone can look up or cancel; together they are
   the only credential (assignment scope has no accounts - see §8).
@@ -187,14 +188,28 @@ WHERE booking_reference = :reference
   real behaviour, and test reports must state which leg ran.
 - **No pagination or caching layer:** five seeded properties make both
   unnecessary; they would be the first additions at real catalogue size.
-- **No rate limiting / brute-force protection** on lookup: the generic 404
-  keeps probes uninformed, but a production deployment would add throttling.
+- **Request throttling, stated honestly:** the booking endpoints cap each
+  client per fixed one-minute window (create/lookup/cancel 10, quote 30)
+  as single-instance defense-in-depth against scripted abuse - email
+  guessing against a known reference, automated inventory exhaustion,
+  request floods. It is NOT distributed protection: counters live in one
+  JVM, a restart or second instance resets them, and behind a gateway every
+  client shares the gateway's address. The production authority is a
+  gateway-level limiter (nginx/Cloudflare/LB); deployments behind one set
+  `APP_RATE_LIMIT_ENABLED=false`.
+- **Baseline response hardening, no CSP yet:** every response carries three
+  fixed security headers (`X-Content-Type-Options: nosniff`,
+  `X-Frame-Options: DENY`, `Referrer-Policy:
+  strict-origin-when-cross-origin`), set by a filter ahead of the throttle
+  so even a 429 is stamped. A Content-Security-Policy is deliberately
+  absent while the API serves JSON only - it arrives with the first
+  HTML-serving or auth/session surface.
 - **Photography:** `image_url` is NULL for all seeded properties; the
   frontend ships curated local assets instead (see `docs/IMAGE-INVENTORY.md`).
 
 ## 9. Verification approach
 
-Two test legs, one suite (66 tests, eleven classes - see `docs/TESTING.md`):
+Two test legs, one suite (77 tests, thirteen classes - see `docs/TESTING.md`):
 
 | Leg | Engine | What it proves |
 |---|---|---|

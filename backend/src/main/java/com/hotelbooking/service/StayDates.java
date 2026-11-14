@@ -13,6 +13,15 @@ import com.hotelbooking.error.BadRequestApiException;
  */
 public final class StayDates {
 
+    /**
+     * Upper bound on one stay, enforced everywhere StayDates.validate runs
+     * (booking creation, price quotes and availability queries). Beyond the
+     * guest-experience argument, the bound also keeps total_amount inside
+     * its DECIMAL(10,2) column even at the highest seeded nightly rate, so
+     * an absurd range fails as a clean 400 instead of a database error.
+     */
+    public static final int MAX_NIGHTS = 30;
+
     private StayDates() {
     }
 
@@ -22,6 +31,9 @@ public final class StayDates {
         }
         if (!checkOut.isAfter(checkIn)) {
             throw new BadRequestApiException("checkOut must be after checkIn.");
+        }
+        if (nights(checkIn, checkOut) > MAX_NIGHTS) {
+            throw new BadRequestApiException("A stay can span at most " + MAX_NIGHTS + " nights.");
         }
     }
 

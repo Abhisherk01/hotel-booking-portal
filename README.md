@@ -2,7 +2,7 @@
 
 A full-stack hotel booking application: browse hotels, check date availability, book one room, retrieve and cancel reservations - built as a technical interview assignment.
 
-**Current status:** Feature-complete and submission-ready (Milestone F). The backend ships the full REST API with its automated 66-test suite green on both database legs - H2 in MySQL compatibility mode and real MySQL 8.4/InnoDB via Docker. The frontend (Milestones A-E) delivers the design system, homepage, collection listing with filters and compare, the hotel detail page with the four-step booking flow, and the Manage Booking page with reference+email lookup and email-verified cancellation. This README documents only what exists right now.
+**Current status:** Feature-complete (Milestone F) with the Phase 3 security remediation applied. The backend ships the full REST API with its automated 77-test suite - green on the H2 leg (`Tests run: 77, Failures: 0, Errors: 0, Skipped: 0`); the MySQL leg re-runs automatically in CI. The frontend (Milestones A-E) delivers the design system, homepage, collection listing with filters and compare, the hotel detail page with the four-step booking flow, and the Manage Booking page with reference+email lookup and email-verified cancellation. This README documents only what exists right now.
 
 ## Features
 
@@ -28,7 +28,7 @@ A React 18 + Vite SPA talks to a Spring Boot 3.5 REST API over JSON; Hibernate m
 | Database | H2 (MySQL compatibility mode) for development, MySQL 8.4 for full local runs |
 | Build | Maven 3.9 (wrapper included, no local Maven install required) |
 | API docs | springdoc OpenAPI (`/swagger-ui.html`, `/v3/api-docs`) |
-| Tests | JUnit 5 + AssertJ + Spring Boot Test (66 tests: database layer, REST contract, money & availability rules, booking and cancellation concurrency regressions) |
+| Tests | JUnit 5 + AssertJ + Spring Boot Test (77 tests: database layer, REST contract, money & availability rules, booking and cancellation concurrency regressions, request throttle, response security headers) |
 
 ## Repository layout
 
@@ -162,7 +162,7 @@ cd backend
 ./mvnw test
 ```
 
-66 tests run by default against in-memory H2 in MySQL compatibility mode: the four database-layer classes from the schema work, the REST contract tests for all eight endpoints, the price and availability rule tests, and the booking and cancellation concurrency regressions. Every contract and service test rolls back inside one transaction, so the suite is repeatable and order-independent; the concurrency tests bring their own fixtures and clean up after themselves. Strategy, isolation model and result interpretation live in `docs/TESTING.md`.
+77 tests run by default against in-memory H2 in MySQL compatibility mode: the four database-layer classes from the schema work, the REST contract tests for all eight endpoints, the price and availability rule tests, the booking and cancellation concurrency regressions, the booking-endpoint request throttle, and the security response headers. Every contract and service test rolls back inside one transaction, so the suite is repeatable and order-independent; the concurrency tests bring their own fixtures and clean up after themselves. Strategy, isolation model and result interpretation live in `docs/TESTING.md`.
 
 | Suite | What it proves |
 |---|---|
@@ -170,13 +170,15 @@ cd backend
 | `SeedDataTest` | five circuit hotels; 5-7 distinct amenities each; exactly one room category per hotel, capacity 1, positive 2-decimal price |
 | `BookingRepositoryTest` | frozen-quote round-trip; duplicate reference rejected; the half-open overlap truth table; cancelled bookings release the room |
 | `RoomTypeRepositoryTest` | `SELECT ... FOR UPDATE` reader works; categories listable per hotel |
-| `HotelApiContractTest` | hotel endpoints over HTTP: shapes, sorted amenities, generic 404s, parameter validation |
-| `BookingApiContractTest` | booking endpoints over HTTP: 201/200/400/404/405/409, the five-field error envelope, identical generic 404 bodies, reference+email pairing on lookup and cancel, terminal-state lookup after cancellation, cancellation returning the room to inventory, input trimming |
+| `HotelApiContractTest` | hotel endpoints over HTTP: shapes, sorted amenities, generic 404s, parameter validation, the three security response headers on live responses |
+| `BookingApiContractTest` | booking endpoints over HTTP: 201/200/400/404/405/409, the five-field error envelope, identical generic 404 bodies, reference+email pairing on lookup and cancel, terminal-state lookup after cancellation, cancellation returning the room to inventory, input trimming, the 30-night maximum stay on create and quote (31 nights → 400, exactly 30 → 201) |
 | `BookingConcurrencyTest` | six simultaneous POSTs fight for one room through the real stack: exactly one 201, five 409 `BOOKING_UNAVAILABLE`, one persisted row |
 | `BookingCancellationConcurrencyTest` | four simultaneous cancels of one booking through the real stack: exactly one 200, three 409 `BOOKING_ALREADY_CANCELLED`; four wrong-email cancels all 404 and leave the booking alive |
 | `PriceCalculationTest` | single/multi-night math; quote follows the current price; bookings freeze the agreed price; post-reprice bookings take the new price |
 | `AvailabilityRulesTest` | overlaps block; half-open edges bookable; same-day turnover; cancellation releases inventory; quotes advisory, booking rechecks |
 | `BookingReferenceGeneratorTest` | `HB-` format, transcribable alphabet (no 0/1/I/O), uniqueness at volume |
+| `RateLimitFilterTest` | the booking-endpoint throttle driven directly with tiny budgets and a mutable clock: admission up to the limit, the 429 envelope with `Retry-After`, fresh budget at the next window, per-endpoint and per-client budgets, the disable switch |
+| `SecurityHeadersFilterTest` | the response-hardening filter driven directly: exactly the three headers on every response, and headers already set before the chain runs so a short-circuited 429 is stamped too |
 
 The identical suite runs against real MySQL 8.4 when Docker is available:
 
@@ -187,13 +189,17 @@ SPRING_PROFILES_ACTIVE=mysql ./mvnw test
 
 What each leg proves differs in one important way: the H2 leg verifies the booking transaction's lock-recount-compare-persist shape under H2 row locks, while only the MySQL leg exercises InnoDB's `SELECT ... FOR UPDATE` itself. Any test report should name the engine it ran on (`docs/TESTING.md` spells this out).
 
-**Latest execution record (Milestone F):** both legs green - H2 leg `Tests run: 66, Failures: 0, Errors: 0, Skipped: 0`; MySQL 8.4.13 leg (Docker compose, `SPRING_PROFILES_ACTIVE=mysql`) `Tests run: 66, Failures: 0, Errors: 0, Skipped: 0`.
+**Latest execution record (Phase 3 security remediation):** H2 leg `Tests run: 77, Failures: 0, Errors: 0, Skipped: 0` (JDK 21.0.13, Maven 3.9.9) - the remediation added eleven tests (30-night stay ceiling, booking-endpoint request throttle, security response headers) and left both concurrency regressions green. The MySQL leg re-runs automatically in CI once this lands on `main`.
+
+**Previous record (Milestone F):** both legs green on the 66-test suite - H2 leg `Tests run: 66, Failures: 0, Errors: 0, Skipped: 0`; MySQL 8.4.13 leg (Docker compose, `SPRING_PROFILES_ACTIVE=mysql`) `Tests run: 66, Failures: 0, Errors: 0, Skipped: 0`.
 
 ## Configuration notes
 
 - **CORS:** browsers may call the API only from origins listed in `app.cors.allowed-origins` (default `http://localhost:3000` and Vite's `http://localhost:5173`, override with `CORS_ALLOWED_ORIGINS`). Unknown origins get `403` at the filter, before reaching any controller.
 - **Timezone:** all date validation resolves against the `app.business-timezone` clock (`Asia/Kolkata`), never against the JVM default of the host machine.
-- **Error responses:** every failure returns the curated envelope (`timestamp`, `status`, `error`, `message`, `path`); `error` is the machine-readable code the client branches on (`NOT_FOUND`, `VALIDATION_ERROR`, `BOOKING_UNAVAILABLE`, ...). See `docs/API.md` for the full code table. Spring's default payload stays stripped of internals.
+- **Error responses:** every failure returns the curated envelope (`timestamp`, `status`, `error`, `message`, `path`); `error` is the machine-readable code the client branches on (`NOT_FOUND`, `VALIDATION_ERROR`, `BOOKING_UNAVAILABLE`, `RATE_LIMITED`, ...). See `docs/API.md` for the full code table. Spring's default payload stays stripped of internals.
+- **Rate limiting:** the booking endpoints (create, lookup, quote, cancel) are throttled per client address with a fixed one-minute window (create/lookup/cancel 10, quote 30; `app.rate-limit.*`). Over budget answers `429 RATE_LIMITED` with `Retry-After`. This is single-instance defense-in-depth - a production gateway (nginx/Cloudflare/LB) is the real authority, and behind one the filter is disabled with `APP_RATE_LIMIT_ENABLED=false`.
+- **Security headers:** every response - including error bodies and the throttle's 429 - carries `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY` and `Referrer-Policy: strict-origin-when-cross-origin`. The three values are fixed security standards, not tunable policy.
 
 ## Sample data
 
@@ -234,10 +240,12 @@ Captured from the running application (Spring Boot API + Vite build), desktop 14
 | ![Homepage on mobile](docs/screenshots/home-mobile.png) | ![Collection on mobile](docs/screenshots/collection-mobile.png) |
 | *Homepage on mobile (375 px)* | *Collection on mobile (375 px)* |
 
-## Known limitations (as of Phase 4)
+## Known limitations (updated in Phase 3)
 
 - No authentication beyond the reference+email pair: a guest who loses both the reference and their inbox has no recovery path. The assignment scope has no accounts.
 - Hotel photography: `image_url` stays NULL for every seeded property by agreement. The frontend ships a local, catalog-driven set of assets instead (see `docs/IMAGE-INVENTORY.md`) - a future database URL overrides the catalog automatically.
 - No cancel-by cutoff: a stay whose check-in date has passed can still be cancelled. The spec defined no cutoff; adding one is a single service check.
+- The request throttle is single-instance defense-in-depth, not distributed protection: counters live in one JVM and reset on restart, and behind a gateway every client shares the gateway's address - the production authority is a gateway-level limiter (disable the filter there with `APP_RATE_LIMIT_ENABLED=false`).
+- Security headers are the fixed baseline three (nosniff, DENY, strict-origin-when-cross-origin); a Content-Security-Policy is deliberately absent while the API serves JSON only - it belongs with the first HTML-serving or auth/session surface (Phase 6).
 - The concurrency regression is automated (`BookingConcurrencyTest`: six simultaneous bookings, exactly one winner). On the default H2 leg it verifies the transaction's lock-recount-compare-persist shape in MySQL compatibility mode; only the MySQL leg exercises InnoDB row locks itself, and the test report must state which engine ran.
 - H2 in MySQL mode is not byte-for-byte identical to MySQL (index hint syntax, some DDL nuances, identifier casing - all documented in `docs/DATABASE.md`). The MySQL profile exists precisely to verify real behaviour; migrations are written to run on both engines, and the MySQL leg of the suite has been executed green on MySQL 8.4.13.
