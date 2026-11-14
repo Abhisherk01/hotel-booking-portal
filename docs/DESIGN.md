@@ -197,6 +197,14 @@ WHERE booking_reference = :reference
   client shares the gateway's address. The production authority is a
   gateway-level limiter (nginx/Cloudflare/LB); deployments behind one set
   `APP_RATE_LIMIT_ENABLED=false`.
+- **H2 console is an explicit dev opt-in, MySQL port is loopback-only:** the
+  H2 console resolves off on every profile stack (common baseline `false`,
+  dev profile env-gated by `H2_CONSOLE_ENABLED`, MySQL profile and both test
+  trees pinned `false`), because it is unauthenticated on the dev profile
+  and a deploy that forgets its profile must not inherit it. The local
+  Compose file publishes `127.0.0.1:${DB_PORT}:3306` so the database is
+  host-reachable but never LAN-reachable; the internal Compose network by
+  service name is untouched. Both are pinned by `H2ConsoleConfigurationTest`.
 - **Baseline response hardening, no CSP yet:** every response carries three
   fixed security headers (`X-Content-Type-Options: nosniff`,
   `X-Frame-Options: DENY`, `Referrer-Policy:

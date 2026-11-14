@@ -2,7 +2,7 @@
 
 A full-stack hotel booking application: browse hotels, check date availability, book one room, retrieve and cancel reservations - built as a technical interview assignment.
 
-**Current status:** Feature-complete (Milestone F) with the Phase 3 security remediation applied. The backend ships the full REST API with its automated 77-test suite - green on the H2 leg (`Tests run: 77, Failures: 0, Errors: 0, Skipped: 0`); the MySQL leg re-runs automatically in CI. The frontend (Milestones A-E) delivers the design system, homepage, collection listing with filters and compare, the hotel detail page with the four-step booking flow, and the Manage Booking page with reference+email lookup and email-verified cancellation. This README documents only what exists right now.
+**Current status:** Feature-complete (Milestone F) with the Phase 3 security remediation and the Phase 4 configuration hardening applied. The backend ships the full REST API with its automated 83-test suite - green on the H2 leg (`Tests run: 83, Failures: 0, Errors: 0, Skipped: 0`); the MySQL leg re-runs automatically in CI. The frontend (Milestones A-E) delivers the design system, homepage, collection listing with filters and compare, the hotel detail page with the four-step booking flow, and the Manage Booking page with reference+email lookup and email-verified cancellation. This README documents only what exists right now.
 
 ## Features
 
@@ -28,7 +28,7 @@ A React 18 + Vite SPA talks to a Spring Boot 3.5 REST API over JSON; Hibernate m
 | Database | H2 (MySQL compatibility mode) for development, MySQL 8.4 for full local runs |
 | Build | Maven 3.9 (wrapper included, no local Maven install required) |
 | API docs | springdoc OpenAPI (`/swagger-ui.html`, `/v3/api-docs`) |
-| Tests | JUnit 5 + AssertJ + Spring Boot Test (77 tests: database layer, REST contract, money & availability rules, booking and cancellation concurrency regressions, request throttle, response security headers) |
+| Tests | JUnit 5 + AssertJ + Spring Boot Test (83 tests: database layer, REST contract, money & availability rules, booking and cancellation concurrency regressions, request throttle, response security headers, H2 console configuration) |
 
 ## Repository layout
 
@@ -105,7 +105,7 @@ On first boot the API compiles, starts on port 8080, creates `backend/data/hotel
 | URL | Purpose |
 |---|---|
 | `http://localhost:8080/actuator/health` | liveness probe, returns `{"status":"UP"}` |
-| `http://localhost:8080/h2-console` | browser SQL console (JDBC URL `jdbc:h2:file:./data/hotelbooking;MODE=MySQL`, user `sa`, empty password) |
+| `http://localhost:8080/h2-console` | browser SQL console - **off by default**; start the app with `H2_CONSOLE_ENABLED=true` first (JDBC URL `jdbc:h2:file:./data/hotelbooking;MODE=MySQL`, user `sa`, empty password) |
 
 The H2 profile exists for quick development. It runs H2 in MySQL compatibility mode so schema SQL and locking behaviour stay portable to MySQL.
 
@@ -162,7 +162,7 @@ cd backend
 ./mvnw test
 ```
 
-77 tests run by default against in-memory H2 in MySQL compatibility mode: the four database-layer classes from the schema work, the REST contract tests for all eight endpoints, the price and availability rule tests, the booking and cancellation concurrency regressions, the booking-endpoint request throttle, and the security response headers. Every contract and service test rolls back inside one transaction, so the suite is repeatable and order-independent; the concurrency tests bring their own fixtures and clean up after themselves. Strategy, isolation model and result interpretation live in `docs/TESTING.md`.
+83 tests run by default against in-memory H2 in MySQL compatibility mode: the four database-layer classes from the schema work, the REST contract tests for all eight endpoints, the price and availability rule tests, the booking and cancellation concurrency regressions, the booking-endpoint request throttle, the security response headers, and the H2 console configuration hardening. Every contract and service test rolls back inside one transaction, so the suite is repeatable and order-independent; the concurrency tests bring their own fixtures and clean up after themselves. Strategy, isolation model and result interpretation live in `docs/TESTING.md`.
 
 | Suite | What it proves |
 |---|---|
@@ -189,7 +189,9 @@ SPRING_PROFILES_ACTIVE=mysql ./mvnw test
 
 What each leg proves differs in one important way: the H2 leg verifies the booking transaction's lock-recount-compare-persist shape under H2 row locks, while only the MySQL leg exercises InnoDB's `SELECT ... FOR UPDATE` itself. Any test report should name the engine it ran on (`docs/TESTING.md` spells this out).
 
-**Latest execution record (Phase 3 security remediation):** H2 leg `Tests run: 77, Failures: 0, Errors: 0, Skipped: 0` (JDK 21.0.13, Maven 3.9.9) - the remediation added eleven tests (30-night stay ceiling, booking-endpoint request throttle, security response headers) and left both concurrency regressions green. The MySQL leg re-runs automatically in CI once this lands on `main`.
+**Latest execution record (Phase 4 configuration hardening):** H2 leg `Tests run: 83, Failures: 0, Errors: 0, Skipped: 0` (JDK 21.0.13, Maven 3.9.9) - Milestone 1 added six configuration tests (H2 console fail-safe resolution) and left the Phase 3 tests and both concurrency regressions green. The MySQL leg re-runs automatically in CI once this lands on `main`.
+
+**Previous record (Phase 3 security remediation):** H2 leg `Tests run: 77, Failures: 0, Errors: 0, Skipped: 0`; both GitHub Actions jobs green on push (`ababb1c`).
 
 **Previous record (Milestone F):** both legs green on the 66-test suite - H2 leg `Tests run: 66, Failures: 0, Errors: 0, Skipped: 0`; MySQL 8.4.13 leg (Docker compose, `SPRING_PROFILES_ACTIVE=mysql`) `Tests run: 66, Failures: 0, Errors: 0, Skipped: 0`.
 
@@ -200,6 +202,8 @@ What each leg proves differs in one important way: the H2 leg verifies the booki
 - **Error responses:** every failure returns the curated envelope (`timestamp`, `status`, `error`, `message`, `path`); `error` is the machine-readable code the client branches on (`NOT_FOUND`, `VALIDATION_ERROR`, `BOOKING_UNAVAILABLE`, `RATE_LIMITED`, ...). See `docs/API.md` for the full code table. Spring's default payload stays stripped of internals.
 - **Rate limiting:** the booking endpoints (create, lookup, quote, cancel) are throttled per client address with a fixed one-minute window (create/lookup/cancel 10, quote 30; `app.rate-limit.*`). Over budget answers `429 RATE_LIMITED` with `Retry-After`. This is single-instance defense-in-depth - a production gateway (nginx/Cloudflare/LB) is the real authority, and behind one the filter is disabled with `APP_RATE_LIMIT_ENABLED=false`.
 - **Security headers:** every response - including error bodies and the throttle's 429 - carries `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY` and `Referrer-Policy: strict-origin-when-cross-origin`. The three values are fixed security standards, not tunable policy.
+- **H2 console (dev-only opt-in):** `spring.h2.console.enabled` defaults to `false` everywhere; the dev profile accepts `H2_CONSOLE_ENABLED=true` to expose `/h2-console` locally for schema inspection. The MySQL profile pins it off, and the test trees pin it off again. A deployed environment must never serve the console - it is unauthenticated on the H2 dev profile.
+- **Database port binding:** the local Compose file publishes MySQL as `127.0.0.1:${DB_PORT:-3306}:3306` - reachable from the host, never from the LAN. Container port, volume persistence and healthcheck are unchanged; the internal Compose network (service name `db`) is untouched, which is the path a containerized backend would use.
 
 ## Sample data
 

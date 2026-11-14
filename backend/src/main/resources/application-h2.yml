@@ -10,5 +10,10 @@ spring:
     password: ""
   h2:
     console:
-      enabled: true
+      # Development convenience, never a production feature. Off by default
+      # since the Phase 4 hardening: a deploy that forgets its profile gets
+      # no /h2-console. Opt in explicitly for local debugging by setting
+      # H2_CONSOLE_ENABLED=true (see .env.example) - the same variable the
+      # shell passes through to this file.
+      enabled: ${H2_CONSOLE_ENABLED:false}
       path: /h2-console

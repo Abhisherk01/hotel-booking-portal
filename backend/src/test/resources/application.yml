@@ -18,6 +18,15 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+  h2:
+    console:
+      # Pinned off for the whole suite, independent of profile: the test-tree
+      # application-h2.yml also declares false (it shadows the main dev
+      # profile file), and the CI leg resolves the main application-mysql.yml,
+      # which pins false again. Declaring it here as well keeps the console
+      # off even if a future profile file forgets to mention it. Pinned by
+      # H2ConsoleConfigurationTest.
+      enabled: false
 
 app:
   # BusinessTimeConfig and CorsConfig resolve these with no defaults; a

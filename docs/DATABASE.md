@@ -131,7 +131,9 @@ query's equality predicates; the dates handle the range scan.
    ```
 2. Boot the API (`./mvnw spring-boot:run`) and open
    `http://localhost:8080/h2-console` (JDBC URL
-   `jdbc:h2:file:./data/hotelbooking;MODE=MySQL`, user `sa`, empty password):
+   `jdbc:h2:file:./data/hotelbooking;MODE=MySQL`, user `sa`, empty password).
+   Since the Phase 4 hardening the console is OFF by default - start the app
+   with `H2_CONSOLE_ENABLED=true` first, and only ever on your own machine:
 
    ```sql
    SELECT "version", "description", "success"
@@ -153,6 +155,12 @@ query's equality predicates; the dates handle the range scan.
    docker compose up -d
    docker compose ps         # wait for STATUS: healthy
    ```
+   The Compose file publishes MySQL loopback-only:
+   `127.0.0.1:${DB_PORT:-3306}:3306`. The database is reachable from the
+   host (and from the host-run Spring app via `DB_HOST=localhost`) but never
+   from the LAN. The container port, named volume and healthcheck are
+   unchanged; the internal Compose network is untouched, so a containerized
+   backend would still reach the database by the service name `db`.
 2. Boot against it (`SPRING_PROFILES_ACTIVE=mysql ./mvnw spring-boot:run`) -
    Flyway applies the same migration set to MySQL, including the V3
    `image_url` addition.

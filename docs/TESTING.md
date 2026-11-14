@@ -5,11 +5,11 @@ and - stated plainly - what each leg does and does not prove.
 
 ## Suite inventory
 
-77 tests across thirteen classes. The four database-layer classes came with the
-schema work; the eleven newer ones pin the REST contract, the money math,
+83 tests across fourteen classes. The four database-layer classes came with the
+schema work; the ten newer classes pin the REST contract, the money math,
 the booking race and the cancellation race (including the reference+email
-verification pair), and the booking-endpoint request throttle and the
-response security headers.
+verification pair), the booking-endpoint request throttle and the response
+security headers, and the fail-safe configuration of the H2 console.
 
 | Class | Layer | What it proves |
 |---|---|---|
@@ -26,6 +26,7 @@ response security headers.
 | `BookingReferenceGeneratorTest` | unit | `HB-` format; transcribable alphabet (no 0/1/I/O); uniqueness at volume |
 | `RateLimitFilterTest` | unit | the booking-endpoint throttle driven directly with tiny budgets and a mutable clock: admission up to the limit, the five-field 429 envelope with `Retry-After`, fresh budget at the next window, independent per-endpoint and per-client budgets, the `APP_RATE_LIMIT_ENABLED` kill switch |
 | `SecurityHeadersFilterTest` | unit | the response-hardening filter driven directly: exactly the three headers (`nosniff`, `DENY`, `strict-origin-when-cross-origin`) on every response, no extras, and headers set before the chain runs so a short-circuited 429 is stamped too |
+| `H2ConsoleConfigurationTest` | configuration | the H2 console resolves OFF on every stack - default dev runtime, MySQL profile, both test trees and the CI mysql leg - while `H2_CONSOLE_ENABLED=true` is the only way to turn it on; plus one live-context assertion of the booted resolution |
 
 ## Isolation model
 
@@ -86,7 +87,7 @@ export SPRING_PROFILES_ACTIVE=mysql               # PowerShell: $env:SPRING_PROF
 ./mvnw test                                       # PowerShell: .\mvnw.cmd test
 ```
 
-Flyway applies the same migrations to MySQL; the identical 77 tests run
+Flyway applies the same migrations to MySQL; the identical 83 tests run
 against it.
 
 ## What each leg proves - read this before quoting results
@@ -107,20 +108,24 @@ against it.
   is one command away from being closed - see the engine nuances catalogued
   in `docs/DATABASE.md`.
 
-## Latest execution record (Phase 3 security remediation)
+## Latest execution record (Phase 4 configuration hardening)
+
+| Leg | Engine | Result |
+|---|---|---|
+| Default | H2 2.x in-memory, MySQL compatibility mode | `Tests run: 83, Failures: 0, Errors: 0, Skipped: 0` |
+| `SPRING_PROFILES_ACTIVE=mysql` | MySQL 8.4.13 via Docker compose, real InnoDB | re-runs automatically in CI (`clean verify`, Java 21 + MySQL 8.4 service) once the milestone lands on `main` |
+
+Milestone 1 of Phase 4 (H2 console fail-safe gating + loopback-only Compose
+port binding) added six configuration tests and left the Phase 3 tests and
+both concurrency regressions green on the H2 leg. The Phase 3 record below
+remains the last pushed two-job CI result for the 77-test suite.
+
+## Previous execution record (Phase 3 security remediation, 77-test suite)
 
 | Leg | Engine | Result |
 |---|---|---|
 | Default | H2 2.x in-memory, MySQL compatibility mode | `Tests run: 77, Failures: 0, Errors: 0, Skipped: 0` |
-| `SPRING_PROFILES_ACTIVE=mysql` | MySQL 8.4.13 via Docker compose, real InnoDB | re-runs automatically in CI (`clean verify`, Java 21 + MySQL 8.4 service) once the remediation lands on `main` |
-
-The Phase 3 remediation (30-night stay ceiling, booking-endpoint request
-throttle, security response headers; eleven new tests) has been verified on
-the H2 leg. The
-Milestone F record below remains the last full two-leg result for the
-66-test suite; the concurrency regressions are unchanged by the remediation
-and were green again on the H2 leg (one 201/five 409 booking race; one
-200/three 409 cancellation race with a single terminal transition).
+| `SPRING_PROFILES_ACTIVE=mysql` | MySQL 8.4, CI service container, real InnoDB | both GitHub Actions jobs green on push (`ababb1c`) |
 
 ## Previous execution record (Milestone F, 66-test suite)
 
@@ -140,7 +145,7 @@ transition.
 Maven Surefire reports per class and in total:
 
 ```
-Tests run: 77, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 83, Failures: 0, Errors: 0, Skipped: 0
 ```
 
 - **Failures** are assertion misses; **Errors** are crashes (connection

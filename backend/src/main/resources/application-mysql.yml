@@ -8,4 +8,6 @@ spring:
     password: ${DB_PASSWORD:}
   h2:
     console:
+      # H2 tooling has no meaning while running on MySQL; switching profiles
+      # must never drag the dev console along. Pinned off, not inherited.
       enabled: false

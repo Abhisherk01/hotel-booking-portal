@@ -10,6 +10,14 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: none
+  h2:
+    console:
+      # Fail-safe baseline for any profile that does not declare the console
+      # itself: disabled unless switched on deliberately. The dev opt-in
+      # lives in application-h2.yml (H2_CONSOLE_ENABLED=true); the MySQL
+      # profile pins it off again. The console is a development convenience,
+      # never a production feature.
+      enabled: false
 
 server:
   port: ${SERVER_PORT:8080}

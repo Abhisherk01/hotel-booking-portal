@@ -8,7 +8,13 @@ services:
       MYSQL_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set in .env}
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?DB_ROOT_PASSWORD must be set in .env}
     ports:
-      - "${DB_PORT:-3306}:3306"
+      # Loopback-only host binding (Phase 4 hardening): MySQL answers on the
+      # host at 127.0.0.1:${DB_PORT} and is never reachable on the LAN. The
+      # container port stays 3306, and the internal Compose network is
+      # untouched - a backend container would reach the db by service name,
+      # not through this mapping. Host-side tools and the host-run Spring
+      # app connect via 127.0.0.1.
+      - "127.0.0.1:${DB_PORT:-3306}:3306"
     volumes:
       - hotel_mysql_data:/var/lib/mysql
     healthcheck:
