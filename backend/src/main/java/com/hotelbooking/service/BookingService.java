@@ -101,17 +101,58 @@ public class BookingService {
      * Cancellation is terminal; a second cancel is a conflict, not a reset.
      * The email is verified before that check fires - releasing someone
      * else's room by knowing only the reference is not a thing.
+     *
+     * The state transition itself is one atomic conditional UPDATE:
+     * the statement matches the row by reference, by case-insensitive
+     * guest email, and by status = CONFIRMED, and the database decides
+     * the race - InnoDB evaluates the WHERE clause against the row's
+     * latest committed version while holding the row's exclusive lock,
+     * so of any number of simultaneous cancels exactly one can see
+     * affected rows = 1. No read-side lock discipline is required for
+     * correctness; the outcome is one-winner by construction.
+     *
+     * Affected rows drive everything afterwards. One row: the response is
+     * built from a fresh read of the row just written (the bulk update
+     * clears the persistence context, so no stale managed entity can
+     * leak into the response). Zero rows: the caller either had the wrong
+     * email, the wrong reference, or the booking is already cancelled -
+     * classified by a SELECT ... FOR UPDATE read, which - unlike a plain
+     * read under REPEATABLE-READ - always sees the latest committed row
+     * rather than this transaction's snapshot. Wrong reference and wrong
+     * email stay the same generic 404; an email-verified booking that is
+     * already CANCELLED is the 409. The one state where the row still
+     * reads CONFIRMED under our lock - a prior winner that rolled back
+     * before committing - simply retries the guarded write, now holding
+     * the lock itself.
      */
     @Transactional
     public BookingDto cancel(String reference, BookingCancelRequest request) {
-        Booking booking = bookings.findByBookingReference(reference.trim())
-                .filter(candidate -> candidate.matchesGuestEmail(request.guestEmail()))
+        String normalizedReference = reference.trim();
+        String guestEmail = request.guestEmail().trim();
+        LocalDateTime cancelledAt = LocalDateTime.now(clock);
+
+        if (bookings.cancelConfirmedBooking(normalizedReference, guestEmail, cancelledAt) == 1) {
+            return BookingDto.from(bookings.findByBookingReference(normalizedReference)
+                    .orElseThrow(NotFoundApiException::new));
+        }
+
+        Booking booking = bookings.findByReferenceForUpdate(normalizedReference)
                 .orElseThrow(NotFoundApiException::new);
+        if (!booking.matchesGuestEmail(request.guestEmail())) {
+            throw new NotFoundApiException();
+        }
         if (booking.getStatus() == BookingStatus.CANCELLED) {
             throw new ConflictApiException("BOOKING_ALREADY_CANCELLED",
                     "This booking was already cancelled.");
         }
-        booking.markCancelled(LocalDateTime.now(clock));
-        return BookingDto.from(bookings.save(booking));
+        // the row is CONFIRMED and exclusively ours: the earlier UPDATE
+        // lost to a transaction that rolled back instead of committing -
+        // the guarded write can only succeed now
+        if (bookings.cancelConfirmedBooking(normalizedReference, guestEmail, cancelledAt) == 1) {
+            return BookingDto.from(bookings.findByBookingReference(normalizedReference)
+                    .orElseThrow(NotFoundApiException::new));
+        }
+        throw new ConflictApiException("BOOKING_ALREADY_CANCELLED",
+                "This booking was already cancelled.");
     }
 }

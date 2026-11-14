@@ -5,9 +5,10 @@ and - stated plainly - what each leg does and does not prove.
 
 ## Suite inventory
 
-60 tests across ten classes. The four database-layer classes came with the
-schema work; the six newer ones pin the REST contract, the money math and
-the concurrency behaviour, including the reference+email verification pair.
+66 tests across eleven classes. The four database-layer classes came with the
+schema work; the seven newer ones pin the REST contract, the money math,
+the booking race and the cancellation race, including the reference+email
+verification pair.
 
 | Class | Layer | What it proves |
 |---|---|---|
@@ -16,8 +17,9 @@ the concurrency behaviour, including the reference+email verification pair.
 | `BookingRepositoryTest` | database | frozen-quote round-trip; duplicate reference rejected; the half-open overlap truth table; cancelled bookings release the room |
 | `RoomTypeRepositoryTest` | database | `SELECT ... FOR UPDATE` reader works; categories listable per hotel |
 | `HotelApiContractTest` | REST | list/detail/search/availability shapes; sorted amenities; generic 404s; missing/blank parameter and unparseable-date validation |
-| `BookingApiContractTest` | REST | quote/create/lookup/cancel; 201/200/400/404/405/409 codes; the five-field error envelope on every failure path; identical generic 404 bodies; reference+email pairing on lookup and cancel (mismatch is the same 404, email matched case-insensitively, wrong email cannot cancel); guest-input trimming |
+| `BookingApiContractTest` | REST | quote/create/lookup/cancel; 201/200/400/404/405/409 codes; the five-field error envelope on every failure path; identical generic 404 bodies; reference+email pairing on lookup and cancel (mismatch is the same 404, email matched case-insensitively, wrong email cannot cancel); terminal-state lookup after cancellation; cancellation returns the room to inventory; guest-input trimming |
 | `BookingConcurrencyTest` | REST + database | six simultaneous POSTs fight for one room through the real HTTP stack: exactly one 201, five 409 `BOOKING_UNAVAILABLE`, exactly one persisted row |
+| `BookingCancellationConcurrencyTest` | REST + database | four simultaneous cancels of one booking through the real HTTP stack: exactly one 200, three 409 `BOOKING_ALREADY_CANCELLED`, one row stamped CANCELLED once; four wrong-email cancels all bounce off the generic 404 and leave the booking CONFIRMED for its real guest |
 | `PriceCalculationTest` | service | single-night and multi-night math; quote follows the current price; bookings freeze the agreed price; bookings after a reprice take the new price |
 | `AvailabilityRulesTest` | service | overlaps block; half-open edges bookable; same-day turnover; cancellation releases inventory; quotes stay advisory while the booking endpoint rechecks |
 | `BookingReferenceGeneratorTest` | unit | `HB-` format; transcribable alphabet (no 0/1/I/O); uniqueness at volume |
@@ -81,7 +83,7 @@ export SPRING_PROFILES_ACTIVE=mysql               # PowerShell: $env:SPRING_PROF
 ./mvnw test                                       # PowerShell: .\mvnw.cmd test
 ```
 
-Flyway applies the same migrations to MySQL; the identical 60 tests run
+Flyway applies the same migrations to MySQL; the identical 66 tests run
 against it.
 
 ## What each leg proves - read this before quoting results
@@ -107,7 +109,7 @@ against it.
 Maven Surefire reports per class and in total:
 
 ```
-Tests run: 60, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 66, Failures: 0, Errors: 0, Skipped: 0
 ```
 
 - **Failures** are assertion misses; **Errors** are crashes (connection

@@ -1,9 +1,9 @@
 # REST API
 
-Contract for the hotel booking API as of Phase 4. Everything below is
-implemented, documented here, and pinned by the automated REST contract
-tests (`docs/TESTING.md`); the same behaviour runs unchanged on the MySQL
-profile.
+Contract for the hotel booking API as of Phase 5 (Milestone E). Everything
+below is implemented, documented here, and pinned by the automated REST
+contract tests (`docs/TESTING.md`); the same behaviour runs unchanged on
+the MySQL profile.
 
 - **Base URL:** `http://localhost:8080`
 - **Content type:** `application/json` for request and response bodies
@@ -133,9 +133,16 @@ Marks the booking CANCELLED and stamps `cancelledAt` from the business
 clock. The room returns to inventory immediately - a half-open overlap
 query simply stops counting it.
 
+Concurrent cancels serialize on the booking's own row (`SELECT ... FOR
+UPDATE`, the same shape the create path takes on the room-category row):
+exactly one request flips the status, the others re-read CANCELLED under
+the lock and get the 409.
+
 The same email pairing applies: a wrong email is the generic 404 and the
 booking stays alive; an email-verified cancel of an already-cancelled
-booking is `409 BOOKING_ALREADY_CANCELLED`.
+booking is `409 BOOKING_ALREADY_CANCELLED`. Lookup keeps working after
+cancellation - the same pair answers the booking with status CANCELLED
+and its `cancelledAt` stamp, frozen figures untouched.
 
 ## Business rules
 
@@ -152,6 +159,9 @@ booking is `409 BOOKING_ALREADY_CANCELLED`.
    row (`SELECT ... FOR UPDATE`), recounts confirmed overlaps while
    holding the lock, and compares against capacity. Losers get 409
    `BOOKING_UNAVAILABLE` - a business outcome, not a server fault.
+   Cancellation serializes the same way on the booking's own row, so
+   simultaneous cancels of one booking produce exactly one success and
+   409s for the rest.
 6. **Generic 404 everywhere.** No endpoint distinguishes "does not exist"
    from "exists but you may not know that" - including a real reference
    paired with the wrong email on lookup or cancel.

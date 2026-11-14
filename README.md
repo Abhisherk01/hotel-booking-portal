@@ -2,7 +2,7 @@
 
 A full-stack hotel booking application: browse hotels, check date availability, book one room, retrieve and cancel reservations - built as a technical interview assignment.
 
-**Current status:** Phase 5 in progress (backend complete through Phase 4: database layer, full REST API, automated test suite; frontend Milestone A shipped the design system, global layout, navigation and footer; Milestone B shipped the homepage - hero, live destination/date search, featured collection, destination cards). This README documents only what exists right now.
+**Current status:** Phase 5 in progress (backend complete through Phase 4: database layer, full REST API, automated test suite; frontend Milestone A shipped the design system, global layout, navigation and footer; Milestone B the homepage; Milestone C the collection listing with filters, sorting, dated availability and compare; Milestone D the hotel detail page and the review → guest → quote → confirm booking flow; Milestone E the Manage Booking page - lookup by reference + email, cancellation with a confirmation dialog). This README documents only what exists right now.
 
 ## Stack (backend)
 
@@ -14,7 +14,7 @@ A full-stack hotel booking application: browse hotels, check date availability, 
 | Database | H2 (MySQL compatibility mode) for development, MySQL 8.4 for full local runs |
 | Build | Maven 3.9 (wrapper included, no local Maven install required) |
 | API docs | springdoc OpenAPI (`/swagger-ui.html`, `/v3/api-docs`) |
-| Tests | JUnit 5 + AssertJ + Spring Boot Test (60 tests: database layer, REST contract, money & availability rules, concurrency regression) |
+| Tests | JUnit 5 + AssertJ + Spring Boot Test (66 tests: database layer, REST contract, money & availability rules, booking and cancellation concurrency regressions) |
 
 ## Repository layout
 
@@ -41,7 +41,7 @@ backend/                       Spring Boot REST API (port 8080)
   src/test/resources/          test datasources: in-memory H2 (default), MySQL via profile
   docker-compose.yml           MySQL 8.4 for the local database profile
   .env.example                 environment template (copy to .env, never committed)
-frontend/                     React 18 + Vite + TypeScript (Phase 5, milestone B)
+frontend/                     React 18 + Vite + TypeScript (Phase 5)
   src/api/                    typed client for the Spring Boot endpoints + response shapes
   src/lib/format.ts           INR formatting, night math, Asia/Kolkata business date
   src/styles/tokens.css       design tokens - the approved Option A palette
@@ -67,9 +67,9 @@ docs/
 - That is all for the H2 profile - the Maven wrapper downloads Maven itself.
 - Docker + Docker Compose, only if you want the MySQL profile.
 
-## Frontend (Phase 5, milestone B)
+## Frontend (Phase 5)
 
-React 18 + Vite + TypeScript against the approved "Luxury Hotel Booking - Option A" direction. Milestone B fills the homepage: the commissioned hero photograph, a destination/date search panel wired to `GET /api/hotels/search` plus per-hotel `GET /api/hotels/{id}/availability`, the featured collection (real seeded records and INR rates via `GET /api/hotels` + detail calls) and five destination cards that run genuine searches. Date validation mirrors the backend's `StayDates` rules on an Asia/Kolkata clock: past check-in rejected, check-out must fall after check-in. The dev server proxies `/api/*` to `localhost:8080`, so start the backend first:
+React 18 + Vite + TypeScript against the approved "Luxury Hotel Booking - Option A" direction. Milestone B filled the homepage: the commissioned hero photograph, a destination/date search panel wired to `GET /api/hotels/search` plus per-hotel `GET /api/hotels/{id}/availability`, the featured collection (real seeded records and INR rates via `GET /api/hotels` + detail calls) and five destination cards that run genuine searches. Milestones C and D added the collection listing (filters, sorting, dated availability, up-to-three comparison) and the hotel detail page with the four-step booking flow. Milestone E fills `/manage-booking`: lookup by reference + guest email against `POST /api/bookings/lookup`, the booking record as a ledger, and email-verified cancellation with a confirmation dialog against `POST /api/bookings/{reference}/cancel` - a wrong pair gets the same neutral not-found the API gives everyone, and nothing on the page decides availability or amounts on its own. Date validation mirrors the backend's `StayDates` rules on an Asia/Kolkata clock: past check-in rejected, check-out must fall after check-in. The dev server proxies `/api/*` to `localhost:8080`, so start the backend first:
 
 ```bash
 cd frontend
@@ -148,7 +148,7 @@ cd backend
 ./mvnw test
 ```
 
-60 tests run by default against in-memory H2 in MySQL compatibility mode: the four database-layer classes from the schema work, the REST contract tests for all eight endpoints, the price and availability rule tests, and the concurrency regression. Every contract and service test rolls back inside one transaction, so the suite is repeatable and order-independent; the concurrency test brings its own fixture and cleans up after itself. Strategy, isolation model and result interpretation live in `docs/TESTING.md`.
+66 tests run by default against in-memory H2 in MySQL compatibility mode: the four database-layer classes from the schema work, the REST contract tests for all eight endpoints, the price and availability rule tests, and the booking and cancellation concurrency regressions. Every contract and service test rolls back inside one transaction, so the suite is repeatable and order-independent; the concurrency tests bring their own fixtures and clean up after themselves. Strategy, isolation model and result interpretation live in `docs/TESTING.md`.
 
 | Suite | What it proves |
 |---|---|
@@ -157,8 +157,9 @@ cd backend
 | `BookingRepositoryTest` | frozen-quote round-trip; duplicate reference rejected; the half-open overlap truth table; cancelled bookings release the room |
 | `RoomTypeRepositoryTest` | `SELECT ... FOR UPDATE` reader works; categories listable per hotel |
 | `HotelApiContractTest` | hotel endpoints over HTTP: shapes, sorted amenities, generic 404s, parameter validation |
-| `BookingApiContractTest` | booking endpoints over HTTP: 201/200/400/404/405/409, the five-field error envelope, identical generic 404 bodies, reference+email pairing on lookup and cancel, input trimming |
+| `BookingApiContractTest` | booking endpoints over HTTP: 201/200/400/404/405/409, the five-field error envelope, identical generic 404 bodies, reference+email pairing on lookup and cancel, terminal-state lookup after cancellation, cancellation returning the room to inventory, input trimming |
 | `BookingConcurrencyTest` | six simultaneous POSTs fight for one room through the real stack: exactly one 201, five 409 `BOOKING_UNAVAILABLE`, one persisted row |
+| `BookingCancellationConcurrencyTest` | four simultaneous cancels of one booking through the real stack: exactly one 200, three 409 `BOOKING_ALREADY_CANCELLED`; four wrong-email cancels all 404 and leave the booking alive |
 | `PriceCalculationTest` | single/multi-night math; quote follows the current price; bookings freeze the agreed price; post-reprice bookings take the new price |
 | `AvailabilityRulesTest` | overlaps block; half-open edges bookable; same-day turnover; cancellation releases inventory; quotes advisory, booking rechecks |
 | `BookingReferenceGeneratorTest` | `HB-` format, transcribable alphabet (no 0/1/I/O), uniqueness at volume |

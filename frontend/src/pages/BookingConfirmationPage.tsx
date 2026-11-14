@@ -59,6 +59,11 @@ export function BookingConfirmationPage() {
   const rateMoved =
     state?.quotedTotal !== null && state?.quotedTotal !== undefined && state.quotedTotal !== booking.totalAmount
 
+  // A cancelled booking whose snapshot survives in sessionStorage must not
+  // be welcomed back with the creation ceremony - the page reads the
+  // record's status and speaks accordingly.
+  const cancelled = booking.status === 'CANCELLED'
+
   const statusBadge: ReactElement =
     booking.status === 'CONFIRMED' ? (
       <span className="confirmation__badge confirmation__badge--confirmed">{booking.status}</span>
@@ -73,14 +78,17 @@ export function BookingConfirmationPage() {
       <div className="confirmation__hero">
         <span className="confirmation__seal" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M5 12.5 10 17.5 19 7" />
+            {cancelled ? <path d="M6.5 12h11" /> : <path d="M5 12.5 10 17.5 19 7" />}
           </svg>
         </span>
-        <p className="eyebrow">Booking confirmed</p>
-        <h1 className="confirmation__title">Your stay is reserved</h1>
+        <p className="eyebrow">{cancelled ? 'Booking cancelled' : 'Booking confirmed'}</p>
+        <h1 className="confirmation__title">
+          {cancelled ? 'This stay was cancelled' : 'Your stay is reserved'}
+        </h1>
         <p className="confirmation__lede">
-          The API has written this reservation against {booking.hotelName}&rsquo;s inventory.
-          Keep the reference &mdash; together with the guest email it is the only key to the booking.
+          {cancelled
+            ? `The API holds booking ${booking.reference} as CANCELLED. The figures below are the snapshot taken at creation; the status is the record as it stands.`
+            : `The API has written this reservation against ${booking.hotelName}’s inventory. Keep the reference — together with the guest email it is the only key to the booking.`}
         </p>
         <p className="confirmation__reference-label">Booking reference</p>
         <p className="confirmation__reference">{booking.reference}</p>
@@ -148,7 +156,11 @@ export function BookingConfirmationPage() {
       </div>
 
       <div className="confirmation__actions">
-        <Link to="/manage-booking" className="btn btn--primary">
+        <Link
+          to="/manage-booking"
+          className="btn btn--primary"
+          state={{ reference: booking.reference, guestEmail: booking.guestEmail }}
+        >
           Manage this booking
         </Link>
         <Link

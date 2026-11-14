@@ -443,4 +443,52 @@ class BookingApiContractTest {
         assertThat(body.get("error").asText()).isEqualTo("METHOD_NOT_ALLOWED");
         assertThat(body.get("path").asText()).isEqualTo("/api/bookings");
     }
+
+    @Test
+    void lookupAfterCancellationShowsTheTerminalState() throws Exception {
+        MvcResult created = createBooking("Meera Iyer", "meera@example.in", soon(2), soon(4));
+        String reference = bodyOf(created).get("reference").asText();
+
+        mockMvc.perform(post("/api/bookings/" + reference + "/cancel")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonOf(Map.of("guestEmail", "meera@example.in"))))
+                .andExpect(status().isOk());
+
+        // the same pair must still open the booking afterwards - cancelled,
+        // not vanished: the guest reads what happened, not a second 404
+        MvcResult result = mockMvc.perform(post("/api/bookings/lookup")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonOf(Map.of("reference", reference, "guestEmail", "meera@example.in"))))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        JsonNode booking = bodyOf(result);
+        assertThat(booking.get("status").asText()).isEqualTo("CANCELLED");
+        assertThat(booking.hasNonNull("cancelledAt")).isTrue();
+        // the snapshot figures survive the cancellation untouched
+        assertThat(booking.get("pricePerNight").decimalValue()).isEqualByComparingTo("8500.00");
+        assertThat(booking.get("totalAmount").decimalValue()).isEqualByComparingTo("17000.00");
+    }
+
+    @Test
+    void cancellationReturnsTheRoomToInventory() throws Exception {
+        // room 1 seats exactly one confirmed stay: fill it, prove the next
+        // guest is locked out, cancel, and the same dates must book again
+        MvcResult first = createBooking("Meera Iyer", "meera@example.in", soon(6), soon(8));
+        assertThat(first.getResponse().getStatus()).isEqualTo(201);
+        String reference = bodyOf(first).get("reference").asText();
+
+        MvcResult blocked = createBooking("Vikram Rao", "vikram@example.in", soon(6), soon(8));
+        assertThat(blocked.getResponse().getStatus()).isEqualTo(409);
+        assertThat(bodyOf(blocked).get("error").asText()).isEqualTo("BOOKING_UNAVAILABLE");
+
+        mockMvc.perform(post("/api/bookings/" + reference + "/cancel")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonOf(Map.of("guestEmail", "meera@example.in"))))
+                .andExpect(status().isOk());
+
+        MvcResult again = createBooking("Vikram Rao", "vikram@example.in", soon(6), soon(8));
+        assertThat(again.getResponse().getStatus()).isEqualTo(201);
+        assertThat(bodyOf(again).get("reference").asText()).isNotEqualTo(reference);
+    }
 }

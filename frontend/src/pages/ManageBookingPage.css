@@ -1,0 +1,448 @@
+/*
+ * Manage Booking page: a quiet lookup form, the booking record as a
+ * ledger, one sober danger zone. Same tokens and rhythm as the
+ * confirmation page - this page is its working sibling, not its ceremony.
+ */
+
+.manage {
+  max-width: 760px;
+  padding-top: var(--space-8);
+  padding-bottom: var(--space-10);
+}
+
+.manage__head {
+  text-align: center;
+}
+
+.manage__title {
+  margin-top: var(--space-3);
+  font-size: var(--text-page);
+}
+
+.manage__lede {
+  max-width: 58ch;
+  margin-top: var(--space-4);
+  margin-inline: auto;
+  color: var(--color-ink-soft);
+}
+
+/* Lookup form ----------------------------------------------------------- */
+
+.manage__panel {
+  margin-top: var(--space-7);
+  padding: var(--space-6);
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+/* the retry sits right under the notice, not a full rhythm away */
+.manage__panel--after-notice {
+  margin-top: var(--space-5);
+}
+
+.manage__form {
+  max-width: 440px;
+  margin-inline: auto;
+}
+
+.manage__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-5);
+}
+
+.manage__field label {
+  font-size: var(--text-micro);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+}
+
+.manage__field input {
+  min-height: 48px;
+  padding: var(--space-2) var(--space-4);
+  font: inherit;
+  font-size: var(--text-body);
+  color: var(--color-ink);
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.manage__field input:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 1px;
+  border-color: var(--color-gold);
+}
+
+.manage__field input[aria-invalid='true'] {
+  border-color: var(--color-error);
+}
+
+.manage__field input:disabled {
+  color: var(--color-grey);
+  background: var(--color-cream);
+}
+
+.manage__field-error {
+  font-size: var(--text-small);
+  color: var(--color-error);
+}
+
+.manage__submit {
+  width: 100%;
+}
+
+.manage__form-note {
+  margin-top: var(--space-4);
+  font-size: var(--text-small);
+  text-align: center;
+  color: var(--color-grey);
+}
+
+/* Searching skeleton ------------------------------------------------------ */
+
+.manage__skeleton {
+  margin-top: var(--space-6);
+}
+
+.manage__skeleton-line {
+  display: block;
+  height: 16px;
+  width: 60%;
+  margin-top: var(--space-4);
+  margin-inline: auto;
+  border-radius: 999px;
+  background: var(--color-cream);
+  animation: manage-breathe 1.6s ease-in-out infinite;
+}
+
+.manage__skeleton-line--wide {
+  width: 75%;
+}
+
+.manage__skeleton-line--short {
+  width: 35%;
+}
+
+@keyframes manage-breathe {
+  0%,
+  100% {
+    opacity: 0.65;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Notices and banners ------------------------------------------------------ */
+
+.manage__notice {
+  margin-top: var(--space-6);
+}
+
+.manage__notice:focus {
+  outline: none;
+}
+
+.manage__banner {
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-5);
+  font-size: var(--text-small);
+  background: var(--color-white);
+  border-left: 3px solid var(--color-border);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  color: var(--color-ink-soft);
+}
+
+.manage__banner--success {
+  border-left-color: var(--color-success);
+}
+
+.manage__banner--info {
+  border-left-color: var(--color-info);
+}
+
+.manage__banner:focus {
+  outline: none;
+}
+
+/* Ledger ------------------------------------------------------------------ */
+
+.manage__result {
+  margin-top: var(--space-7);
+}
+
+.manage__ledger {
+  padding: var(--space-5);
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.manage__ledger-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.manage__reference {
+  margin-top: var(--space-2);
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 1.2rem + 1vw, 2rem);
+  letter-spacing: 0.08em;
+}
+
+.manage__reference:focus {
+  outline: none;
+}
+
+.manage__badge {
+  flex-shrink: 0;
+  padding: var(--space-1) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  font-size: var(--text-micro);
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-grey);
+}
+
+.manage__badge--confirmed {
+  color: var(--color-success);
+  border-color: var(--color-success);
+}
+
+.manage__badge--cancelled {
+  color: var(--color-error);
+  border-color: var(--color-error);
+}
+
+.manage__facts > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-5);
+  padding: var(--space-3) 0;
+}
+
+.manage__facts > div + div {
+  border-top: 1px solid var(--color-border);
+}
+
+.manage__facts dt {
+  padding-top: 3px;
+  font-size: var(--text-micro);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-grey);
+}
+
+.manage__facts dd {
+  margin: 0;
+  text-align: right;
+  color: var(--color-ink);
+}
+
+.manage__sub {
+  display: block;
+  font-size: var(--text-small);
+  color: var(--color-grey);
+}
+
+.manage__stay-link {
+  color: var(--color-ink);
+  text-decoration-color: var(--color-gold);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.manage__facts-total dt {
+  color: var(--color-gold-muted);
+}
+
+.manage__facts-total dd {
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  font-weight: 600;
+}
+
+.manage__figures-note {
+  margin-top: var(--space-4);
+  font-size: var(--text-micro);
+  color: var(--color-grey);
+}
+
+/* Danger zone and terminal note -------------------------------------------- */
+
+.manage__danger {
+  margin-top: var(--space-5);
+  padding: var(--space-5);
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-error);
+  border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+}
+
+.manage__danger h3 {
+  font-size: var(--text-card-title);
+}
+
+.manage__danger p {
+  max-width: 60ch;
+  margin-top: var(--space-2);
+  font-size: var(--text-small);
+  color: var(--color-ink-soft);
+}
+
+.manage__danger-button {
+  margin-top: var(--space-4);
+  background: transparent;
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
+
+.manage__danger-button:hover {
+  background: var(--color-error);
+  color: var(--color-white);
+}
+
+.manage__terminal {
+  margin-top: var(--space-5);
+  padding: var(--space-5);
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-info);
+  border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+}
+
+.manage__terminal h3 {
+  font-size: var(--text-card-title);
+}
+
+.manage__terminal p {
+  max-width: 60ch;
+  margin-top: var(--space-2);
+  font-size: var(--text-small);
+  color: var(--color-ink-soft);
+}
+
+.manage__result-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--space-6);
+}
+
+/* Cancellation dialog ------------------------------------------------------- */
+
+.manage-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+  background: rgba(32, 32, 29, 0.55);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.manage-dialog__sheet {
+  width: 100%;
+  max-width: 560px;
+  padding: var(--space-6);
+  background: var(--color-ivory);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+}
+
+@media (min-width: 640px) {
+  .manage-dialog {
+    align-items: center;
+    padding: var(--space-6);
+  }
+
+  .manage-dialog__sheet {
+    border-radius: var(--radius-xl);
+  }
+}
+
+.manage-dialog__title {
+  margin-top: var(--space-2);
+  font-size: var(--text-section);
+}
+
+.manage-dialog__summary {
+  margin-top: var(--space-3);
+  font-size: var(--text-small);
+  color: var(--color-ink-soft);
+}
+
+.manage-dialog__warning {
+  margin-top: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-left: 3px solid var(--color-warning);
+  background: var(--color-cream);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: var(--text-small);
+  color: var(--color-ink-soft);
+}
+
+.manage-dialog__note {
+  margin-top: var(--space-3);
+  font-size: var(--text-micro);
+  color: var(--color-grey);
+}
+
+.manage-dialog__error {
+  margin-top: var(--space-3);
+  font-size: var(--text-small);
+  color: var(--color-error);
+}
+
+.manage-dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+}
+
+.manage-dialog__actions .btn {
+  flex: 1 1 auto;
+}
+
+.manage__confirm-cancel {
+  background: var(--color-error);
+  border-color: var(--color-error);
+  color: var(--color-white);
+}
+
+.manage__confirm-cancel:hover {
+  opacity: 0.88;
+}
+
+/* Mobile ---------------------------------------------------------------------- */
+
+@media (max-width: 639px) {
+  .manage__panel {
+    padding: var(--space-5);
+  }
+
+  .manage__facts > div {
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  .manage__facts dd {
+    text-align: left;
+  }
+
+  .manage-dialog__actions .btn {
+    flex: 1 1 100%;
+  }
+}

@@ -11,6 +11,8 @@
 
 import type {
   Booking,
+  BookingCancelPayload,
+  BookingLookupPayload,
   BookingPayload,
   HotelAvailability,
   HotelDetail,
@@ -125,4 +127,25 @@ export function quoteBookingPrice(payload: PriceQuotePayload): Promise<PriceQuot
  */
 export function createBooking(payload: BookingPayload): Promise<Booking> {
   return request<Booking>('/bookings', { body: payload })
+}
+
+/**
+ * Retrieve a booking by its reference and guest email pair. The API
+ * answers the same generic 404 whether the reference is unknown or the
+ * email does not match, and this client deliberately passes that through
+ * untouched: one neutral message, never a hint about which half was wrong.
+ */
+export function lookupBooking(payload: BookingLookupPayload): Promise<Booking> {
+  return request<Booking>('/bookings/lookup', { body: payload })
+}
+
+/**
+ * Cancel a booking. 200 returns the CANCELLED record; 409
+ * BOOKING_ALREADY_CANCELLED means the booking reached its terminal state
+ * earlier (possibly from another tab); a wrong email is the same generic
+ * 404 as an unknown reference. The backend re-verifies the email pair and
+ * the status under a row lock - the frontend only asks, it never decides.
+ */
+export function cancelBooking(reference: string, payload: BookingCancelPayload): Promise<Booking> {
+  return request<Booking>(`/bookings/${encodeURIComponent(reference)}/cancel`, { body: payload })
 }

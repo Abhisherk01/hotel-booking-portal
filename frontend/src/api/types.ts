@@ -76,6 +76,17 @@ export interface BookingPayload {
   checkOut: string
 }
 
+/** The body POST /api/bookings/lookup expects. */
+export interface BookingLookupPayload {
+  reference: string
+  guestEmail: string
+}
+
+/** The body POST /api/bookings/{reference}/cancel expects. */
+export interface BookingCancelPayload {
+  guestEmail: string
+}
+
 /**
  * The booking as the API stores it. pricePerNight and totalAmount are the
  * snapshot taken at creation - what the guest agreed to pay - so they are
