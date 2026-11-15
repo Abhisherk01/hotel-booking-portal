@@ -7,6 +7,12 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# One CI run per branch or PR at a time: a new push supersedes the previous
+# one and cancels the outdated run instead of queueing it.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -14,6 +20,9 @@ jobs:
   backend:
     name: Backend - Java 21 and MySQL 8.4
     runs-on: ubuntu-latest
+    # Bounded runtime: MySQL service boot plus the full Maven verify stays
+    # well inside this ceiling; the limit exists so a hang fails loudly.
+    timeout-minutes: 20
 
     services:
       mysql:
@@ -57,9 +66,38 @@ jobs:
           DB_PASSWORD: ci-test-password
         run: chmod +x ./mvnw && ./mvnw -B -ntp clean verify
 
+      # Test evidence for every run: Surefire XML reports upload after
+      # successful and failed test runs alike (if: always()). A run that
+      # fails before the test phase produces no reports, and
+      # if-no-files-found: ignore keeps that from failing the upload step.
+      - name: Upload Surefire test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: backend/target/surefire-reports/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      # Informational only - lists newer dependency and parent versions on
+      # Maven Central. Nothing is upgraded here: the Boot BOM stays the
+      # single version authority and Dependabot proposes any real change.
+      # continue-on-error is scoped to this report step alone, so a Maven
+      # Central, network or plugin failure cannot turn an otherwise
+      # successful backend verification into a failed job. The blocking
+      # backend check is the ./mvnw -B -ntp clean verify step above;
+      # continue-on-error is never applied to tests or essential checks.
+      - name: Report available Maven dependency updates (informational, non-blocking)
+        continue-on-error: true
+        run: |
+          ./mvnw -B -ntp \
+            org.codehaus.mojo:versions-maven-plugin:2.25.1:display-dependency-updates \
+            org.codehaus.mojo:versions-maven-plugin:2.25.1:display-parent-updates
+
   frontend:
     name: Frontend - TypeScript and Vite
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     defaults:
       run:
@@ -78,6 +116,14 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      # Production dependencies only, decided by npm audit's own exit
+      # status (no --fix, no masking). The report lands in the job log and
+      # the run summary; pipefail keeps the audit exit code through the tee.
+      - name: Audit production dependencies
+        run: |
+          set -o pipefail
+          npm audit --omit=dev 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Build frontend
         run: npm run build

@@ -1,0 +1,53 @@
+# Dependabot version updates.
+#
+# What this file controls:
+# - Weekly version-update checks (Monday 06:00 UTC) for the Maven backend
+#   and the npm frontend.
+# - Compatible minor and patch updates are grouped into one pull request
+#   per ecosystem so the weekly review stays small. Major updates are
+#   excluded from the group and arrive as separate single-dependency PRs.
+# - Version-update PRs are capped at 5 open per ecosystem.
+#
+# What this file deliberately does not do:
+# - Security updates are a repository setting, not a dependabot.yml option
+#   (Settings -> Code security -> Dependabot security updates; this file
+#   cannot enable them). Enable that toggle once; security PRs then run on
+#   top of this schedule and are not counted against the version-update
+#   limit below, so the cap never delays a security patch.
+# - The Spring Boot parent stays on the 3.x line by assignment spec (see
+#   the comment in backend/pom.xml), so automatic major-version parent
+#   upgrades are excluded below. 3.x minor and patch updates still arrive.
+# - No dependency versions change because of this file; updates are only
+#   proposed as pull requests and take effect when a PR is reviewed,
+#   merged, and green in CI.
+version: 2
+updates:
+  - package-ecosystem: maven
+    directory: /backend
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+    ignore:
+      - dependency-name: org.springframework.boot:spring-boot-starter-parent
+        update-types:
+          - "version-update:semver-major"
+
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"

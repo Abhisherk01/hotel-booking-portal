@@ -68,6 +68,7 @@ frontend/                     React 18 + Vite + TypeScript (Phase 5)
   src/assets/hotels/          ten shipped photography assets (img-1 .. img-10)
   src/pages/                  routed pages + /styleguide design-system reference
 docs/
+  DEPLOYMENT.md                production deployment guide (versions, env vars, checklist)
   DATABASE.md                  schema documentation and verification guide
   API.md                       REST contract, error codes, business rules
   TESTING.md                   test strategy, both database legs, what each proves
