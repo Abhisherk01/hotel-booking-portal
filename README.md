@@ -1,8 +1,101 @@
-# Hotel Booking Portal
+<div align="center">
 
-A full-stack hotel booking application: browse hotels, check date availability, book one room, retrieve and cancel reservations - built as a technical interview assignment.
+# The Aurelia Collection — Hotel Booking Portal
 
-**Current status:** Feature-complete (Milestone F) with the Phase 3 security remediation and the Phase 4 configuration hardening applied. The backend ships the full REST API with its automated 83-test suite - green on the H2 leg (`Tests run: 83, Failures: 0, Errors: 0, Skipped: 0`); the MySQL leg re-runs automatically in CI. The frontend (Milestones A-E) delivers the design system, homepage, collection listing with filters and compare, the hotel detail page with the four-step booking flow, and the Manage Booking page with reference+email lookup and email-verified cancellation. This README documents only what exists right now.
+**A full-stack hotel booking application: browse five curated properties, check dated availability, compare up to three hotels side by side, book at a server-calculated price, and manage the reservation with a booking reference plus email - built as a technical interview assignment.**
+
+[![CI](https://github.com/Abhisherk01/hotel-booking-portal/actions/workflows/ci.yml/badge.svg)](https://github.com/Abhisherk01/hotel-booking-portal/actions/workflows/ci.yml)
+[![Java 21](https://img.shields.io/badge/Java-21-orange?logo=openjdk&logoColor=white)](backend/pom.xml)
+[![Spring Boot 3.5.16](https://img.shields.io/badge/Spring%20Boot-3.5.16-6DB33F?logo=springboot&logoColor=white)](backend/pom.xml)
+[![TypeScript 5.6](https://img.shields.io/badge/TypeScript-5.6-3178C6?logo=typescript&logoColor=white)](frontend/package.json)
+[![React 18](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white)](frontend/package.json)
+[![MySQL 8.4](https://img.shields.io/badge/MySQL-8.4-4479A1?logo=mysql&logoColor=white)](backend/docker-compose.yml)
+
+**Status:** feature-complete (Milestone F) with the Phase 3 security remediation and the Phase 4 configuration hardening. The backend ships the full REST API with its automated 83-test suite - green on the H2 leg (`Tests run: 83, Failures: 0, Errors: 0, Skipped: 0`); the MySQL 8.4 leg runs automatically in CI on every push to `main`. The application runs locally today; there is no hosted demo, and this README documents only what exists right now.
+
+</div>
+
+---
+
+## Table of contents
+
+- [Screenshots](#screenshots)
+  - [A. Home Page](#a-home-page)
+  - [B. Hotel Collection](#b-hotel-collection)
+  - [C. Hotel Details](#c-hotel-details)
+  - [D. Booking Experience](#d-booking-experience)
+  - [E. Manage Booking](#e-manage-booking)
+- [Demo Video](#demo-video)
+- [Features](#features)
+- [Architecture and technical documentation](#architecture-and-technical-documentation)
+- [Tech stack](#tech-stack)
+- [Repository layout](#repository-layout)
+- [Local setup (Windows PowerShell)](#local-setup-windows-powershell)
+- [Sample data](#sample-data)
+- [Verifying the schema and seed data](#verifying-the-schema-and-seed-data)
+- [Testing](#testing)
+- [Configuration notes](#configuration-notes)
+- [API surface](#api-surface)
+- [Project limitations](#project-limitations)
+
+## Screenshots
+
+Captured from the running application (Spring Boot API + Vite build); desktop at 1440 px, mobile at 375 px.
+
+### A. Home Page
+
+| Desktop | Mobile |
+|---|---|
+| ![Home page on desktop - commissioned hero photograph, destination and date search panel, featured collection](docs/screenshots/home-desktop.png) | ![Home page on mobile - hero and featured hotels stacked for a 375 px viewport](docs/screenshots/home-mobile.png) |
+| *Home - hero, search panel, featured collection* | *Home - mobile (375 px)* |
+
+### B. Hotel Collection
+
+| Desktop | Mobile |
+|---|---|
+| ![Hotel collection listing on desktop - location chips with live counts, price and amenity filters, sorting and the compare tray](docs/screenshots/collection-desktop.png) | ![Hotel collection listing on mobile - filters and hotel cards on a 375 px viewport](docs/screenshots/collection-mobile.png) |
+| *Collection - filters, sort, compare tray* | *Collection - mobile (375 px)* |
+
+### C. Hotel Details
+
+![Hotel detail page on desktop - photography gallery, amenities and per-category availability](docs/screenshots/hotel-detail-desktop.png)
+
+*Hotel detail - gallery, amenities, availability*
+
+### D. Booking Experience
+
+**Booking flow** - the four-step path from reviewing a hotel through guest details and the exact price quote to confirmation.
+
+![Booking flow on desktop - hotel review, guest details, price quote and confirmation steps](docs/screenshots/booking-flow-desktop.png)
+
+**Booking confirmation** - the generated booking reference with the frozen figures.
+
+![Booking confirmation on desktop - booking reference and frozen price figures](docs/screenshots/booking-confirmation-desktop.png)
+
+### E. Manage Booking
+
+Lookup and cancellation - find a booking by reference + guest email, read it as a ledger, and cancel it with email verification.
+
+![Manage booking page on desktop - reference and email lookup, the booking ledger and email-verified cancellation](docs/screenshots/manage-booking-desktop.png)
+
+*Manage booking - lookup, ledger, cancellation*
+
+## Demo Video
+
+> **Demo Video — Coming Soon.** No recording exists yet: the repository contains no MP4/WebM/GIF assets, and none is claimed elsewhere. GitHub READMEs do not reliably play inline MP4 files, so once a recording exists it will be linked here through a clickable thumbnail pointing to an accessible video URL (for example an unlisted YouTube video).
+
+The recording should demonstrate, end to end:
+
+1. Hotel browsing and search.
+2. Hotel comparison (up to three properties side by side).
+3. Hotel details and dated availability.
+4. Price quote and booking.
+5. Booking confirmation.
+6. Booking lookup and email-verified cancellation.
+
+<!-- Demo video thumbnail template - activate once a real video URL exists:
+[![Demo video - Hotel Booking Portal walkthrough](docs/screenshots/home-desktop.png)](VIDEO_URL)
+-->
 
 ## Features
 
@@ -10,25 +103,63 @@ A full-stack hotel booking application: browse hotels, check date availability, 
 - **Collection filters** - location (town chips with live counts), price-per-night range derived from the rates the API actually returned, AND-semantics amenity chips; sort by curated order or price ascending/descending.
 - **Dated availability** - per-category availability for a half-open stay `[checkIn, checkOut)`; same-day turnover never conflicts.
 - **Compare** - pin up to three hotels and view them side by side.
-- **Booking flow** - review → guest details → price quote (exact `DECIMAL(10,2)` math) → confirmation, with client-side validation mirroring the backend's rules on the `Asia/Kolkata` clock.
+- **Server-side price calculation** - the quote endpoint computes every amount in exact `DECIMAL(10,2)` math on the server; a booking freezes the agreed price, and a later reprice takes the new price (pinned by `PriceCalculationTest`).
+- **Booking flow** - review → guest details → price quote → confirmation, with client-side validation mirroring the backend's rules on the `Asia/Kolkata` clock: past check-in rejected, check-out must fall after check-in.
+- **Booking reference generation** - `HB-`-prefixed references in a transcribable alphabet (no `0/1/I/O`), unique at volume (`BookingReferenceGeneratorTest`).
 - **Manage booking** - lookup by reference + email (one generic 404 for any wrong pair, email matched case-insensitively), the booking as a ledger, and email-verified cancellation with a confirmation dialog.
-- **Concurrency-safe inventory** - one row-lock decision per booking; cancellation is a single atomic conditional UPDATE; the room returns to inventory the instant a booking flips to `CANCELLED`.
+- **Concurrency-safe inventory** - one row-lock decision per booking; cancellation is a single atomic conditional UPDATE; the room returns to inventory the instant a booking flips to `CANCELLED`. Six simultaneous POSTs fighting for one room produce exactly one 201 (`BookingConcurrencyTest`).
+- **Validation and consistent API errors** - requests are validated on the server, and every failure returns the same curated five-field envelope (`timestamp`, `status`, `error`, `message`, `path`) with machine-readable codes (`NOT_FOUND`, `VALIDATION_ERROR`, `BOOKING_UNAVAILABLE`, `RATE_LIMITED`, ...).
+- **Responsive UI** - desktop (1440 px) and mobile (375 px) layouts across every page, from the homepage to booking management.
 
-## Architecture
+## Architecture and technical documentation
 
-A React 18 + Vite SPA talks to a Spring Boot 3.5 REST API over JSON; Hibernate maps onto a Flyway-owned schema running on MySQL 8.4 (H2 in MySQL compatibility mode for fast development). Every failure returns one curated error envelope, every concurrency decision is made by the database under row locks, and all date arithmetic runs on the `Asia/Kolkata` business clock. The full narrative - schema, booking logic, cancellation strategy, assumptions and limitations - lives in `docs/DESIGN.md`.
+A React 18 + Vite SPA talks to a Spring Boot 3.5 REST API over JSON; Hibernate maps onto a Flyway-owned schema running on MySQL 8.4 (H2 in MySQL compatibility mode for fast development). Every failure returns one curated error envelope, every concurrency decision is made by the database under row locks, and all date arithmetic runs on the `Asia/Kolkata` business clock.
 
-## Stack (backend)
+```
+React + TypeScript Frontend
+        |
+        | REST API (JSON over HTTP)
+        v
++--------------------------------------------+
+|           Spring Boot Backend              |
+|                                            |
+|   JPA / Hibernate (ddl-auto: none)         |
+|   Flyway (runs inside the backend)         |
+|                                            |
++--------------------------------------------+
+        | JPA / Hibernate          | Flyway migrations
+        | reads and writes data    | V1-V3 at every boot
+        |                          |
+        v                          v
++--------------------------------------------+
+|               MySQL Database               |
++--------------------------------------------+
+```
+
+Flyway runs inside the backend: migrations apply automatically at every boot and own the schema (`V1`-`V3` today), while Hibernate runs with `ddl-auto: none` and can never create or alter tables.
+
+| Document | Contents |
+|---|---|
+| [`docs/DESIGN.md`](docs/DESIGN.md) | the full narrative - schema, booking logic, cancellation strategy, assumptions and limitations |
+| [`docs/API.md`](docs/API.md) | REST contract, error codes, business rules |
+| [`docs/DATABASE.md`](docs/DATABASE.md) | schema documentation and verification guide |
+| [`docs/TESTING.md`](docs/TESTING.md) | test strategy, both database legs, what each proves |
+| [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | production deployment guide - versions, environment variables, checklist |
+| [`docs/IMAGE-INVENTORY.md`](docs/IMAGE-INVENTORY.md) | photography subjects, placements and honest pairing notes |
+
+## Tech stack
 
 | Layer | Technology |
 |---|---|
-| Language | Java 21 (Temurin) |
-| Framework | Spring Boot 3.5.16 (Web, Data JPA, Validation, Actuator) |
+| Backend language | Java 21 (Temurin) |
+| Backend framework | Spring Boot 3.5.16 (Web, Data JPA, Validation, Actuator) |
 | Persistence | Spring Data JPA (Hibernate) on a Flyway-owned schema |
 | Database | H2 (MySQL compatibility mode) for development, MySQL 8.4 for full local runs |
 | Build | Maven 3.9 (wrapper included, no local Maven install required) |
 | API docs | springdoc OpenAPI (`/swagger-ui.html`, `/v3/api-docs`) |
-| Tests | JUnit 5 + AssertJ + Spring Boot Test (83 tests: database layer, REST contract, money & availability rules, booking and cancellation concurrency regressions, request throttle, response security headers, H2 console configuration) |
+| Frontend | React 18, TypeScript 5.6 (strict mode), Vite 5, React Router 7 |
+| Frontend design | CSS design tokens (the approved Option A palette), Inter + Playfair Display via @fontsource |
+| Tests | JUnit 5 + AssertJ + Spring Boot Test (83 tests) |
 
 ## Repository layout
 
@@ -75,65 +206,114 @@ docs/
   IMAGE-INVENTORY.md           photography subjects, placements and honest pairing notes
 ```
 
-## Prerequisites
+## Local setup (Windows PowerShell)
+
+The commands below are copy-paste-ready for Windows PowerShell; the Linux/macOS equivalents and the production-oriented view live in [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md). On Windows the Maven wrapper is invoked as `.\mvnw.cmd` (not `./mvnw`).
+
+### Prerequisites
 
 - JDK 21 (`java -version` should report 21.x; newer JDKs also compile correctly since the build targets `--release 21`)
-- Node.js 20+ and npm, only if you run the frontend
-- That is all for the H2 profile - the Maven wrapper downloads Maven itself.
-- Docker + Docker Compose, only if you want the MySQL profile.
+- Node.js 20+ and npm 10+, only if you run the frontend
+- Docker Desktop, only for the MySQL profile
+- No Maven install needed - the wrapper downloads Maven 3.9.9 itself
 
-## Frontend (Phase 5)
+### 1. Backend on H2 (fastest start)
 
-React 18 + Vite + TypeScript against the approved "Luxury Hotel Booking - Option A" direction. Milestone B filled the homepage: the commissioned hero photograph, a destination/date search panel wired to `GET /api/hotels/search` plus per-hotel `GET /api/hotels/{id}/availability`, the featured collection (real seeded records and INR rates via `GET /api/hotels` + detail calls) and five destination cards that run genuine searches. Milestones C and D added the collection listing (filters, sorting, dated availability, up-to-three comparison) and the hotel detail page with the four-step booking flow. Milestone E fills `/manage-booking`: lookup by reference + guest email against `POST /api/bookings/lookup`, the booking record as a ledger, and email-verified cancellation with a confirmation dialog against `POST /api/bookings/{reference}/cancel` - a wrong pair gets the same neutral not-found the API gives everyone, and nothing on the page decides availability or amounts on its own. Date validation mirrors the backend's `StayDates` rules on an Asia/Kolkata clock: past check-in rejected, check-out must fall after check-in. The dev server proxies `/api/*` to `localhost:8080`, so start the backend first:
+```powershell
+cd backend
+.\mvnw.cmd spring-boot:run
+```
 
-```bash
+On first boot the API compiles, starts on port 8080, creates `backend\data\hotelbooking.mv.db` and applies all three migrations, so the database seeds itself. An existing database upgrades in place - migrations apply, nothing is wiped.
+
+- Liveness probe: `http://localhost:8080/actuator/health` returns `{"status":"UP"}`.
+- API docs: `http://localhost:8080/swagger-ui.html`.
+- H2 console: **off by default**. Opt in for local inspection only, then start the app:
+
+```powershell
+$env:H2_CONSOLE_ENABLED = "true"
+.\mvnw.cmd spring-boot:run     # then open http://localhost:8080/h2-console
+```
+
+(JDBC URL `jdbc:h2:file:./data/hotelbooking;MODE=MySQL`, user `sa`, empty password.) The H2 profile runs H2 in MySQL compatibility mode so schema SQL and locking behaviour stay portable to MySQL.
+
+### 2. Frontend
+
+```powershell
 cd frontend
-npm install
+npm ci               # clean install from the committed package-lock.json
 npm run dev          # http://localhost:5173
 ```
 
-`npm run build` runs the TypeScript compiler in strict mode and produces the production bundle in `dist/`; `npm run preview` serves that bundle on port 4173 with the same `/api` proxy, so the production build talks to the API with no CORS setup. When the frontend is deployed from a different origin than the API, set `VITE_API_BASE_URL` at build time and add that origin to the backend's `CORS_ALLOWED_ORIGINS`. The photography inventory and placement rules live in `docs/IMAGE-INVENTORY.md`; the design tokens are visualized on `/styleguide` while the dev server runs.
+Start the backend first: the dev server proxies `/api/*` to `localhost:8080`, so no CORS or base-URL setup is needed locally. `npm ci` deletes `node_modules` and installs exactly the dependency tree pinned in `package-lock.json` - the same tree CI builds against - so do not swap it for `npm install`. `npm run build` runs the TypeScript compiler in strict mode and produces the production bundle in `dist/`; `npm run preview` serves that bundle on port 4173 with the same `/api` proxy. The design tokens are visualized on `/styleguide` while the dev server runs.
 
-## Running with H2 (default profile)
-
-```bash
-cd backend
-./mvnw spring-boot:run
-```
-
-On first boot the API compiles, starts on port 8080, creates `backend/data/hotelbooking.mv.db` and applies both migrations, so the database seeds itself. An existing Phase 1 database upgrades in place - migrations apply, nothing is wiped. Useful endpoints while the profile is active:
+### 3. URLs at a glance
 
 | URL | Purpose |
 |---|---|
-| `http://localhost:8080/actuator/health` | liveness probe, returns `{"status":"UP"}` |
-| `http://localhost:8080/h2-console` | browser SQL console - **off by default**; start the app with `H2_CONSOLE_ENABLED=true` first (JDBC URL `jdbc:h2:file:./data/hotelbooking;MODE=MySQL`, user `sa`, empty password) |
+| `http://localhost:5173` | frontend dev server (Vite) |
+| `http://localhost:4173` | production preview (`npm run preview`) |
+| `http://localhost:8080/actuator/health` | backend liveness probe, returns `{"status":"UP"}` |
+| `http://localhost:8080/swagger-ui.html` | API docs (dev convenience) |
 
-The H2 profile exists for quick development. It runs H2 in MySQL compatibility mode so schema SQL and locking behaviour stay portable to MySQL.
+When the frontend is deployed from a different origin than the API, set `VITE_API_BASE_URL` at build time and add that origin to the backend's `CORS_ALLOWED_ORIGINS`.
 
-## Running with MySQL
+### 4. MySQL option
 
-```bash
+```powershell
 cd backend
 
 # 1. Configure credentials - the compose file refuses to start without them.
-cp .env.example .env
+Copy-Item .env.example .env
 # edit .env: set DB_PASSWORD and DB_ROOT_PASSWORD (never commit this file)
 
 # 2. Start MySQL 8.4 and wait for the healthcheck to pass.
 docker compose up -d
 docker compose ps        # STATUS should be "healthy"
 
-# 3. Boot the API against it.
-SPRING_PROFILES_ACTIVE=mysql ./mvnw spring-boot:run
+# 3. Boot the API against it (same PowerShell session).
+$env:SPRING_PROFILES_ACTIVE = "mysql"
+.\mvnw.cmd spring-boot:run
 ```
 
-Connection details resolve from the environment (`DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD`). No default password exists anywhere in the repository - set real values in `.env` before starting anything.
+Connection details resolve from the environment (`DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD`). No default password exists anywhere in the repository - set real values in `.env` before starting anything. The compose file publishes MySQL on `127.0.0.1` only, never the LAN.
+
+### 5. Environment variables
+
+| Variable | When to set it | Notes |
+|---|---|---|
+| `SPRING_PROFILES_ACTIVE` | MySQL profile | set to `mysql`; unset means the default H2 dev profile |
+| `DB_PASSWORD` | MySQL profile | required - no default exists; compose refuses to start without it |
+| `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME` | optional | overrides with defaults `localhost` / `3306` / `hotel_booking` / `hotel_app` |
+| `CORS_ALLOWED_ORIGINS` | cross-origin deployments | comma-separated exact origins; defaults cover `localhost:3000` and `localhost:5173` |
+| `VITE_API_BASE_URL` | cross-origin frontend | set at build time only when the bundle origin differs from the API origin |
+| `SERVER_PORT` | optional | backend listen port, default `8080` |
+| `H2_CONSOLE_ENABLED` | local development only | `true` exposes `/h2-console`; a deployed environment must never set it |
+| `APP_RATE_LIMIT_ENABLED` | behind a gateway | `false` disables the in-app throttle (see [Configuration notes](#configuration-notes)) |
+
+In PowerShell, `$env:NAME = "value"` applies to the current session - start the backend in that same session. `docker compose` reads `.env` automatically; the Spring app reads the same variables from the process environment. Production guidance (including the required-in-production variables) lives in [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
+
+### 6. Sample data
+
+Flyway seeds the database on first boot - five properties on the classic Indian circuit (see [Sample data](#sample-data)). There is no separate seeding step to run.
+
+## Sample data
+
+Five properties on the classic Indian leisure circuit, one room category each (capacity 1 for this release), priced per night in INR:
+
+| City | Property | Category | Price/night |
+|---|---|---|---|
+| Jaipur | Hawa Mahal Courtyard Haveli | Heritage Courtyard Room | Rs 8,500 |
+| Udaipur | Lake Pichola Stone Villa | Lakefront Stone Room | Rs 12,400 |
+| Goa | Cavelossim Palms Beach House | Beachside Cottage | Rs 7,800 |
+| Kochi | Fort Kochi Spice Residence | Colonial Veranda Room | Rs 6,900 |
+| Manali | Cedar Ridge Mountain Lodge | Cedar View Cabin | Rs 5,900 |
 
 ## Verifying the schema and seed data
 
 Flyway is enabled and owns the schema; Hibernate is configured with `ddl-auto: none` and can never create tables.
 
-1. Boot the API with either profile and watch the log for `Migrating schema "PUBLIC" to version "1 - schema"` and `"2 - sample data"`.
+1. Boot the API with either profile and watch the log for `Migrating schema "PUBLIC" to version "1 - schema"`, `"2 - sample data"` and `"3 - hotel images"`.
 2. Open the H2 console (H2 profile) or any MySQL client and run:
 
 ```sql
@@ -146,7 +326,7 @@ On the H2 console this exact statement needs H2-style quoting (see `docs/DATABAS
 SELECT "version", "description", "success" FROM "flyway_schema_history" ORDER BY "installed_rank";
 ```
 
-3. Expect three rows: Flyway's own marker (rank -1, null version, `<< Flyway Schema History table created >>`) plus versions 1 and 2 - every row with `success = TRUE`. A failed migration leaves a row with `success = 0` and the API refuses to boot until it is resolved.
+3. Expect four rows: Flyway's own marker (rank -1, null version, `<< Flyway Schema History table created >>`) plus versions 1, 2 and 3 - every row with `success = TRUE`. A failed migration leaves a row with `success = FALSE` (shown as `0` on MySQL) and the API refuses to boot until it is resolved.
 4. Confirm the seed landed:
 
 ```sql
@@ -156,11 +336,11 @@ SELECT (SELECT COUNT(*) FROM hotels)         AS hotels,
 -- expect: 5 hotels, 30 amenities, 5 room types
 ```
 
-## Tests
+## Testing
 
-```bash
+```powershell
 cd backend
-./mvnw test
+.\mvnw.cmd test     # Linux/macOS: ./mvnw test
 ```
 
 83 tests run by default against in-memory H2 in MySQL compatibility mode: the four database-layer classes from the schema work, the REST contract tests for all eight endpoints, the price and availability rule tests, the booking and cancellation concurrency regressions, the booking-endpoint request throttle, the security response headers, and the H2 console configuration hardening. Every contract and service test rolls back inside one transaction, so the suite is repeatable and order-independent; the concurrency tests bring their own fixtures and clean up after themselves. Strategy, isolation model and result interpretation live in `docs/TESTING.md`.
@@ -183,14 +363,15 @@ cd backend
 
 The identical suite runs against real MySQL 8.4 when Docker is available:
 
-```bash
+```powershell
 docker compose up -d            # from backend/, after .env is configured
-SPRING_PROFILES_ACTIVE=mysql ./mvnw test
+$env:SPRING_PROFILES_ACTIVE = "mysql"
+.\mvnw.cmd test
 ```
 
 What each leg proves differs in one important way: the H2 leg verifies the booking transaction's lock-recount-compare-persist shape under H2 row locks, while only the MySQL leg exercises InnoDB's `SELECT ... FOR UPDATE` itself. Any test report should name the engine it ran on (`docs/TESTING.md` spells this out).
 
-**Latest execution record (Phase 4 configuration hardening):** H2 leg `Tests run: 83, Failures: 0, Errors: 0, Skipped: 0` (JDK 21.0.13, Maven 3.9.9) - Milestone 1 added six configuration tests (H2 console fail-safe resolution) and left the Phase 3 tests and both concurrency regressions green. The MySQL leg re-runs automatically in CI once this lands on `main`.
+**Latest execution record (Phase 4 configuration hardening):** H2 leg `Tests run: 83, Failures: 0, Errors: 0, Skipped: 0` (JDK 21.0.13, Maven 3.9.9) - Milestone 1 added six configuration tests (H2 console fail-safe resolution) and left the Phase 3 tests and both concurrency regressions green. The MySQL leg runs automatically in CI on every push to `main`.
 
 **Previous record (Phase 3 security remediation):** H2 leg `Tests run: 77, Failures: 0, Errors: 0, Skipped: 0`; both GitHub Actions jobs green on push (`ababb1c`).
 
@@ -206,19 +387,7 @@ What each leg proves differs in one important way: the H2 leg verifies the booki
 - **H2 console (dev-only opt-in):** `spring.h2.console.enabled` defaults to `false` everywhere; the dev profile accepts `H2_CONSOLE_ENABLED=true` to expose `/h2-console` locally for schema inspection. The MySQL profile pins it off, and the test trees pin it off again. A deployed environment must never serve the console - it is unauthenticated on the H2 dev profile.
 - **Database port binding:** the local Compose file publishes MySQL as `127.0.0.1:${DB_PORT:-3306}:3306` - reachable from the host, never from the LAN. Container port, volume persistence and healthcheck are unchanged; the internal Compose network (service name `db`) is untouched, which is the path a containerized backend would use.
 
-## Sample data
-
-Five properties on the classic Indian leisure circuit, one room category each (capacity 1 for this release), priced per night in INR:
-
-| City | Property | Category | Price/night |
-|---|---|---|---|
-| Jaipur | Hawa Mahal Courtyard Haveli | Heritage Courtyard Room | Rs 8,500 |
-| Udaipur | Lake Pichola Stone Villa | Lakefront Stone Room | Rs 12,400 |
-| Goa | Cavelossim Palms Beach House | Beachside Cottage | Rs 7,800 |
-| Kochi | Fort Kochi Spice Residence | Colonial Veranda Room | Rs 6,900 |
-| Manali | Cedar Ridge Mountain Lodge | Cedar View Cabin | Rs 5,900 |
-
-## API surface (implemented so far)
+## API surface
 
 | Endpoint | Status |
 |---|---|
@@ -230,24 +399,10 @@ Five properties on the classic Indian leisure circuit, one room category each (c
 | `POST /api/bookings/lookup` | live |
 | `POST /api/bookings/{reference}/cancel` | live |
 
-## Screenshots
+## Project limitations
 
-Captured from the running application (Spring Boot API + Vite build), desktop 1440 px and mobile 375 px.
-
-| | |
-|---|---|
-| ![Homepage - hero, search and featured collection](docs/screenshots/home-desktop.png) | ![Collection listing with filters](docs/screenshots/collection-desktop.png) |
-| *Homepage - hero, search panel, featured collection* | *Collection listing - filters, sort, compare tray* |
-| ![Hotel detail page](docs/screenshots/hotel-detail-desktop.png) | ![Booking flow](docs/screenshots/booking-flow-desktop.png) |
-| *Hotel detail - gallery, amenities, availability* | *Booking flow - guest details, quote, confirm* |
-| ![Booking confirmation](docs/screenshots/booking-confirmation-desktop.png) | ![Manage booking](docs/screenshots/manage-booking-desktop.png) |
-| *Booking confirmation - reference and frozen figures* | *Manage booking - lookup, ledger, cancellation* |
-| ![Homepage on mobile](docs/screenshots/home-mobile.png) | ![Collection on mobile](docs/screenshots/collection-mobile.png) |
-| *Homepage on mobile (375 px)* | *Collection on mobile (375 px)* |
-
-## Known limitations (updated in Phase 3)
-
-- No authentication beyond the reference+email pair: a guest who loses both the reference and their inbox has no recovery path. The assignment scope has no accounts.
+- **No authentication beyond the reference+email pair:** a guest who loses both the reference and their inbox has no recovery path. The assignment scope has no accounts.
+- **No payment processing, no email delivery, no admin functionality:** the scope ends at browsing, booking and management - there are no accounts, no hosted production deployment and no public live demo.
 - Hotel photography: `image_url` stays NULL for every seeded property by agreement. The frontend ships a local, catalog-driven set of assets instead (see `docs/IMAGE-INVENTORY.md`) - a future database URL overrides the catalog automatically.
 - No cancel-by cutoff: a stay whose check-in date has passed can still be cancelled. The spec defined no cutoff; adding one is a single service check.
 - The request throttle is single-instance defense-in-depth, not distributed protection: counters live in one JVM and reset on restart, and behind a gateway every client shares the gateway's address - the production authority is a gateway-level limiter (disable the filter there with `APP_RATE_LIMIT_ENABLED=false`).
